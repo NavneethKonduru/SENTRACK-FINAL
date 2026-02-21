@@ -1,20 +1,22 @@
-# Sharvesh — PHASE 4: FINAL DEMO POLISH
+# Sharvesh — PHASE 5: COVER RAHUL'S INTEGRATION + FINAL TESTING
 
-## Status: ✅ Phase 1 ✅ Phase 2 ✅ Phase 3 → Phase 4: Demo-Ready Final Polish
+## Status: ✅ P1 ✅ P2 ✅ P3 ✅ P4 → Phase 5: Cover Rahul's Work + Final QA
 
-## Branch: `feat/assessment-v4`
+## Branch: `feat/final-integration`
+
+> ⚡ Rahul's quota ran out. You're covering his remaining integration tasks. This is the LAST push.
 
 ---
 
-## FULL ANTIGRAVITY PROMPT — PHASE 4 (paste into NEW Antigravity session)
+## FULL ANTIGRAVITY PROMPT — PHASE 5 (paste into NEW Antigravity session)
 
 ```
 I'm Sharvesh on Team Flexinator building SENTRAK for NXTGEN'26 hackathon.
-Phases 1-3 are DONE and merged. This is the FINAL POLISH pass.
-Goal: Make every assessment screen absolutely beautiful and demo-proof.
+Phases 1-4 are DONE and merged. Rahul's quota ran out, so I'm covering his
+remaining integration work. This is the FINAL PHASE before demo.
 
 REPO: https://github.com/Shadow-Joker/IMPROV.git
-MY BRANCH: feat/assessment-v4 (new branch from latest main)
+MY BRANCH: feat/final-integration (new branch from latest main)
 
 ═══════════════════════════════════════════════════════════════
                     AUTONOMOUS WORKFLOW RULES
@@ -23,104 +25,101 @@ MY BRANCH: feat/assessment-v4 (new branch from latest main)
 RULE 1 — GIT SETUP
   git clone https://github.com/Shadow-Joker/IMPROV.git
   cd IMPROV && npm install
-  git checkout -b feat/assessment-v4
+  git checkout -b feat/final-integration
   npm run dev
 
-RULE 2 — After EACH task: git add -A && git commit && git push origin feat/assessment-v4
-RULE 3 — CHANGELOG: append after every push.
-RULE 4 — CONTINUOUS. Do NOT stop until all tasks done.
+RULE 2 — After EACH task: git add -A && git commit && git push origin feat/final-integration
+RULE 3 — CONTINUOUS. Do NOT stop until all tasks done.
 
 ═══════════════════════════════════════════════════════════════
-   PHASE 4: FINAL DEMO POLISH — MAKE JUDGES SAY "WOW"
+   PHASE 5: RAHUL'S REMAINING WORK + FINAL QA
+   These were Rahul's Phase 3 tasks that never got done.
 ═══════════════════════════════════════════════════════════════
 
 ────────────────────────────────────────────────────────
-TASK 1: TIMER WIDGET — DEMO SHOWSTOPPER
+TASK 1: END-TO-END REGISTRATION → PROFILE FLOW TEST
 ────────────────────────────────────────────────────────
-WHY: The timer is the most interactive component judges touch.
-It needs to feel like a professional sports stopwatch app.
+WHY: The core demo flow must work perfectly.
+
+TEST AND FIX THIS EXACT FLOW:
+  1. Go to /register
+  2. Fill all 6 steps (name, age/gender, sport, district, photo skip, review)
+  3. Submit → should save to localStorage and redirect to /profile/:newId
+  4. Profile loads with correct data, rating 1000 (Bronze)
+  5. Mental assessment tab works → all 15 questions → radar chart updates
+  6. Schemes tab shows matching government schemes
+  7. QR passport tab shows QR code
+
+If ANY step breaks, fix it immediately. The flow must be bulletproof.
+
+────────────────────────────────────────────────────────
+TASK 2: ASSESSMENT → PROFILE DATA WIRE
+────────────────────────────────────────────────────────
+WHY: When an assessment is saved, it must show on the athlete's profile.
 
 WHAT TO DO:
-1. Add a 3-2-1 countdown animation before the timer starts:
-   - Large numbers (5rem) that scale in, hold 700ms, scale out.
-   - "GO!" in gradient text at the end.
-   - Each number plays a short beep using AudioContext (440Hz for 3,2,1 and 880Hz for GO).
-2. When running: add a subtle red ring glow that pulses around the timer display.
-3. On stop: brief green flash + haptic vibrate(100).
-4. Display format: MM:SS.cc (centiseconds). Use a monospace font (var(--font-mono)).
-5. Buttons must be at least 80px diameter for projector visibility.
+1. In AthleteProfile.jsx: load assessments from localStorage 'sentrak_assessments'
+   filtered by athlete.id. Show them in the profile under the "Assessments" section.
+2. After saving an assessment on /assess/:id -> navigating to /profile/:id
+   should show the new assessment.
+3. If talentScoring.js has a calculateComposite function, use it to update
+   the athlete's rating. If not, use: rating = 1000 + (avgPercentile * 15).
 
 ────────────────────────────────────────────────────────
-TASK 2: ATTESTATION — THE "WOW" MOMENT
+TASK 3: TOAST NOTIFICATIONS WIRING
 ────────────────────────────────────────────────────────
-WHY: "3 witnesses + OTP + SHA-256 hash" is our unique selling point.
-The UI must make judges FEEL the trust being built.
+WHY: Silent actions confuse users. Every action needs feedback.
 
 WHAT TO DO:
-1. 3 witness cards in a row (stacked on mobile).
-2. Each card: numbered circle (①②③), name field, phone field, "Send OTP" button.
-3. OTP input: 6 separate digit boxes (like banking apps), auto-focus next on input.
-4. On verify: satisfying checkmark animation + card border turns green.
-5. When all 3 verified: dramatic reveal —
-   - All 3 cards shimmer with green glow.
-   - "COMMUNITY VERIFIED ✓" banner slides in from bottom.
-   - SHA-256 hash fingerprint appears below: "a3f2...9bc1"
-   - Brief confetti burst (CSS-only: 20 small colored squares falling).
-6. For demo: accept any 6-digit OTP as valid.
+1. Import { toast } from '../components/shared/Toast' in:
+   - RegisterForm.jsx → toast.success("Athlete registered!") on submit
+   - RecordAssessment.jsx → toast.success("Assessment saved!") on save
+   - ProfileCard.jsx → toast.info("Link copied!") on share
+2. The ToastProvider is already in App.jsx, so toast.success() will work.
 
 ────────────────────────────────────────────────────────
-TASK 3: RECORD ASSESSMENT PAGE — SMOOTH WIZARD
+TASK 4: NAVIGATION POLISH
 ────────────────────────────────────────────────────────
-WHY: The multi-step wizard is the backbone of the assessment flow.
-It must feel seamless, not clunky.
+WHY: Navigating between pages must be seamless.
 
 WHAT TO DO:
-1. Step progress bar at top: numbered circles connected by lines.
-   Current step: accent-primary + glow. Completed: green checkmark.
-2. Slide transitions between steps (translateX animation, 300ms).
-3. "Back" button always visible. "Next" disabled until step is valid.
-4. On final save: success screen with:
-   - Green checkmark animation (scale from 0 to 1 with bounce).
-   - "Assessment Recorded!" text.
-   - Link to athlete's profile.
-   - Summary of what was recorded.
-5. All data persists to localStorage immediately (no data loss on refresh).
+1. After registration: use navigate() (not window.location) to go to /profile/:id.
+2. Add "← Back" button on AthleteProfile and RecordAssessment pages.
+3. Verify /assess/:athleteId from Profile page passes correct ID.
+4. BottomNav: verify active state highlights correctly on all routes.
 
 ────────────────────────────────────────────────────────
-TASK 4: CHALLENGES PAGE — ENGAGEMENT ENGINE
+TASK 5: DEMO DATA VERIFICATION
 ────────────────────────────────────────────────────────
-WHY: "District challenges" prove organic data collection strategy.
+WHY: When judges first open the app, demo data must be visible everywhere.
 
 WHAT TO DO:
-1. At least 5 seeded challenge cards with real data:
-   - "Fastest U-16 60m Sprint — Dharmapuri" (12 entries, closes in 5 days)
-   - "Longest U-14 Broad Jump — Salem" (8 entries, closes in 12 days)
-   - "Best U-18 Bowling Speed — Madurai" (15 entries, closes in 3 days)
-   - "Most Push-ups U-16 60s — Coimbatore" (20 entries, closes in 7 days)
-   - "Fastest U-14 Shuttle Run — Thanjavur" (6 entries, closes in 10 days)
-2. Each card: sport emoji, title, entry count, countdown badge, top 3 mini-leaderboard.
-3. "Enter Challenge" → navigates to /assess with sport pre-selected.
-4. Filter bar: Sport dropdown, Age Group dropdown.
+1. Verify that seedDemoData() in App.jsx runs on mount.
+2. /scout page: verify DEMO_ATHLETES appear in the discovery feed.
+3. /profile/demo-1: verify demo athlete profile loads.
+4. /challenges: verify seeded challenges display.
+5. If any page shows "No data", trace and fix the data loading.
 
 ────────────────────────────────────────────────────────
-TASK 5: CROSS-BROWSER + MOBILE FINAL CHECK
+TASK 6: FULL MOBILE RESPONSIVE AUDIT
 ────────────────────────────────────────────────────────
-WHY: Judges may test on any device.
+WHY: Judges test on their phones.
 
-WHAT TO DO:
-1. Test all assessment pages at 360px width (iPhone SE). Fix any overflow.
-2. Timer buttons: full-width on mobile, stacked vertically.
-3. OTP inputs: use inputmode="numeric" for mobile number pad.
-4. All touch targets: minimum 48px.
-5. Attestation phone input: use type="tel".
+WHAT TO DO (test at 360px width):
+1. Landing page: hero text doesn't overflow, cards stack.
+2. Registration: buttons full-width, sport grid 2-column.
+3. Profile: photo + name stack vertically on mobile.
+4. Scout dashboard: stacks to single column.
+5. ALL touch targets: minimum 48px height.
 
 ═══════════════════════════════════════════════════════════════
                     EXECUTION ORDER
 ═══════════════════════════════════════════════════════════════
 
-NOW: Clone → install → branch feat/assessment-v4 → npm run dev
-THEN: Tasks 1-5 in order. Commit + push after each.
-Tag snapshot/assessment-v4-final when ALL done.
+NOW: Clone → install → branch feat/final-integration → npm run dev
+THEN: Tasks 1-6 in order. Commit + push after each.
+Tag snapshot/final-integration-complete when ALL done.
 
 DO NOT STOP. DO NOT ASK. Build, test, push, continue.
+This is the LAST phase. Make it perfect.
 ```

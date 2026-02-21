@@ -1,252 +1,453 @@
-# 🔴 SENTRAK — Red Team Vulnerability Analysis
+# 💀 SENTRAK — BRUTAL HONEST TEARDOWN
 
-## "How Every Feature Can Be Bypassed or Fooled"
-
-> **Purpose:** If a judge asks "but what about X?", you already know the answer.
-> This document maps every attack vector, how it works, and your defense talking points.
+## Everything That's Broken, Fake, or Meaningless — And How To Actually Fix It
 
 ---
 
-## 1. 🎭 ATTESTATION / OTP SYSTEM — THE BIGGEST TARGET
+## THE HARD TRUTH UPFRONT
 
-### Attack: **Fake Witnesses (Sybil Attack)**
+**SENTRAK's core promise is: "tamper-proof, community-verified athlete records."**
+**The hard truth: Almost none of this is actually enforced.** The entire trust layer is cosmetic. Here's why.
 
-**How it works:** A single person registers 3 different phone numbers (all their own SIMs or family members). They verify all 3 OTPs themselves, creating the illusion of independent witnesses.
+---
 
-**Code proof (AttestationForm.jsx:105-114):**
+## CATEGORY 1: THE OTP IS COMPLETELY FAKE
+
+### What We Claim
+
+"3 witnesses verify via OTP → SHA-256 hash makes it tamper-proof"
+
+### What Actually Happens
 
 ```js
-// Allow any 6 digit input for demo
+// AttestationForm.jsx line 108
 if (w.otp.length === 6 && /^\d{6}$/.test(w.otp)) {
   updateWitness(index, "verified", true);
 }
 ```
 
-Any 6 digits works. No real SMS is sent. No real OTP server.
+**No SMS is sent. No OTP is generated. No server validates anything.**
+Type "123456" three times and you have "community-verified" data. A coach sitting alone in a room can "verify" their own fake assessment in 10 seconds.
 
-**Current defense:** `checkAttestorReputation()` flags phones with >20 attestations in 24h.
-**Gap:** Threshold is 20 — way too high. A fraud ring of 5 people could verify 100 fake athletes (20 each) before triggering.
+### Why This Matters
 
-**Judge Defense:** _"In production, this calls Twilio/MSG91 with real OTPs. The 6-digit demo mode is for hackathon offline testing only. Our attestor reputation system penalizes repeat attestors, and we'd lower the threshold to 5 in production."_
+This is our **biggest selling point** to judges. If they ask "show me the OTP flow" and realize it accepts anything — the entire trust narrative collapses. We're not just demoing — we're misleading.
 
----
+### What ONE Person Can Do Right Now (15 min)
 
-### Attack: **Coach Collusion**
+The coach opens the assessment page and:
 
-**How it works:** A coach creates a fake athlete, inflates the times (e.g., 10.5s for 100m when real time was 14s), and then has their friends verify it.
+1. Enters fake athlete data (inflated 100m time: 10.5s instead of real 14s)
+2. Types 3 fake witness names: "Ravi", "Kumar", "Suresh"
+3. Types 3 random phone numbers: "9876543210", "9876543211", "9876543212"
+4. Types "111111" as OTP for all three
+5. All three show ✅ verified
+6. Hash is generated. Record looks "community-verified + tamper-proof"
+7. **Zero witnesses were actually involved**
 
-**Current defense:** `checkAnomalies()` flags statistically unusual values.
-**Gap:** If the inflated value is within the "normal" range (e.g., 10.5s is in range [9.5, 20] for 100m), the fraud goes undetected. The system only catches EXTREME outliers.
+### THE FIX (Implementable Now)
 
-**Judge Defense:** _"SENTRAK creates transparency, not perfection. In production, we'd cross-reference against video evidence (VideoClipCapture), historical trends for the same athlete, and district-level averages. Multiple independent assessments over time would expose inconsistencies."_
+```
+FIX 1 (Quick - 30 min): Generate a random 6-digit OTP, display it in a
+modal saying "Show this code to the witness on THEIR phone" (simulating
+SMS). The witness must type the EXACT code. This at least forces the coach
+to know the code — not perfect, but shows judges we understand the flow.
 
----
+FIX 2 (Better - 2 hours): Use a Firebase Cloud Function to actually
+send an SMS via Twilio free tier (100 free messages). Real OTP, real
+phone verification. This makes the demo genuinely impressive.
 
-### Attack: **Self-Attestation**
-
-**How it works:** The coach recording the assessment also adds their own phone as a witness.
-
-**Current defense:** None. There's no check that witness phones are different from the coach's phone.
-
-**Judge Defense:** _"In production, the assessor's phone would be automatically excluded from the witness pool. This is a simple backend validation rule."_
-
----
-
-## 2. 🔐 HASH VERIFICATION — TAMPER DETECTION
-
-### Attack: **Regenerate Hash After Tampering**
-
-**How it works:** An attacker opens DevTools → modifies localStorage assessment data → calls `generateHash()` on the modified data → replaces the stored hash with the new one. The verification still passes because the hash matches the tampered data.
-
-**Code proof (hashVerify.js:42-73):**
-
-```js
-export async function generateHash(assessment) {
-  // ... builds data string from assessment fields
-  const buffer = await crypto.subtle.digest("SHA-256", encoder.encode(data));
-  return arrayBufferToHex(buffer);
-}
+FIX 3 (Best - production): Each witness downloads a lightweight SENTRAK
+Witness app. The assessment generates a QR code. Witnesses scan it on
+their own device and tap "I Witnessed This." Now it's cross-device
+verification — actually tamper-resistant.
 ```
 
-The hash function is public. Anyone can call it on modified data.
-
-**Current defense:** None client-side. The hash only proves "this data hasn't been modified SINCE hashing."
-**Gap:** If you have access to the device, you can re-hash anything.
-
-**Judge Defense:** _"The hash is generated at assessment time and immediately queued for server sync. Once synced to Firebase, the server-side hash becomes the immutable reference. Client-side manipulation is meaningless once synced — it would fail server verification. In a full deployment, we'd use Firebase Security Rules to make assessment records append-only."_
-
 ---
 
-### Attack: **DJB2 Fallback is Weak**
+## CATEGORY 2: THE HASH IS MEANINGLESS CLIENT-SIDE
 
-**How it works:** If the app runs on HTTP (not HTTPS/localhost), `crypto.subtle` is unavailable, and the fallback is djb2 — a non-cryptographic 32-bit hash. This is trivially reversible.
+### What We Claim
 
-**Code proof (hashVerify.js:13-19):**
+"SHA-256 cryptographic hash makes records tamper-proof"
 
-```js
-function djb2Hash(str) {
-  let hash = 5381;
-  for (let i = 0; i < str.length; i++) {
-    hash = (hash << 5) + hash + str.charCodeAt(i);
-  }
-  return (hash >>> 0).toString(16).padStart(8, "0");
-}
+### What Actually Happens
+
+The hash is generated on the client. The hash function is public. The data is stored in localStorage. **Anyone who can open DevTools can:**
+
+1. Read the assessment from localStorage
+2. Modify any value (change 14s sprint to 10.5s)
+3. Call `generateHash()` on the modified data
+4. Replace the old hash with the new hash
+5. The record now "passes verification" with the tampered data
+
+**The hash proves NOTHING because the same person who controls the data also controls the hash.**
+
+### An analogy
+
+It's like writing your exam answers in pencil, then signing them in pencil, and claiming "the signature makes it tamper-proof." Anyone with an eraser can change both.
+
+### THE FIX
+
+```
+FIX 1 (Architecture): The hash must be generated SERVER-SIDE. The client
+sends raw data to Firebase Cloud Function. The server hashes it with a
+SECRET salt that the client never sees. The client gets back only the hash.
+Now tampering the data breaks the hash, and regenerating it is impossible
+without the server secret.
+
+FIX 2 (Simpler): Store the hash in a SEPARATE Firebase collection that
+has write-once security rules. Once a hash is written, it can never be
+updated or deleted. Even if someone tampers with the assessment data, the
+original hash in the locked collection will not match.
+
+FIX 3 (For demo): At minimum, add a "Verify Integrity" button on the
+profile that re-hashes the current data and compares it to the stored
+hash. If they don't match, show a big red "TAMPERED" warning. This at
+least DEMONSTRATES the concept even if a sophisticated attacker could
+bypass it.
 ```
 
-**Judge Defense:** _"DJB2 is only a fallback for development environments. Production deployment on Vercel uses HTTPS, which always provides crypto.subtle for SHA-256. The fallback is prefixed with 'djb2:' so we can flag records that weren't cryptographically secured."_
-
 ---
 
-## 3. 💾 LOCALSTORAGE / OFFLINE DB — DATA MANIPULATION
+## CATEGORY 3: THERE IS NO AUTHENTICATION
 
-### Attack: **Direct localStorage Editing**
+### What We Claim
 
-**How it works:** Open DevTools → Application → localStorage → edit `sentrak_athletes` or `sentrak_assessments` directly. Change any athlete's talent rating from 1000 (Bronze) to 2500 (Prodigy).
+"Coaches record assessments for athletes"
 
-**Current defense:** None. localStorage is completely unprotected client-side.
+### What Actually Happens
 
-**Judge Defense:** _"Client-side storage is inherently untrusted — every web app has this limitation. That's why we have the hash verification layer. In production, Firebase Firestore is the source of truth, with security rules preventing unauthorized writes. localStorage is just a cache for offline functionality."_
+**There is no login. No session. No roles.** Anyone who opens the URL can:
 
----
+- Register any athlete with any data
+- Record any assessment for any athlete
+- View any profile
+- Act as a scout and make offers
+- Modify the demo data
 
-### Attack: **Flood Attack / Storage Exhaustion**
+There's no concept of "this coach is authorized to assess athletes in this district" or "this scout is verified by a sports organization."
 
-**How it works:** Fill localStorage (5MB limit) with junk data, crashing the app for all operations.
+### Why This Matters
 
-**Current defense:** Try/catch in offlineDB.js falls back gracefully.
-**Gap:** The fallback just silently fails — user doesn't know their data wasn't saved.
+Without auth, the platform has no accountability. You can't even answer "WHO recorded this assessment?" — there's no user session attached to records.
 
----
+### THE FIX
 
-## 4. 📝 REGISTRATION — IDENTITY FRAUD
+```
+FIX 1 (Quick demo - 45 min): Add Firebase Phone Auth. The coach logs
+in with their phone number. Their phone number is stamped on every
+assessment they record. Now there's an audit trail.
 
-### Attack: **Duplicate Athletes**
+FIX 2 (Role-based): Three roles — Coach, Athlete, Scout.
+- Coaches can only record assessments (not view scout dashboard)
+- Athletes can only view their own profile
+- Scouts can only search and make offers (not record assessments)
 
-**How it works:** Register the same athlete multiple times with slightly different names ("Priya K" vs "Priya Kumar"). Each registration gets a fresh UUID, so the system treats them as different athletes.
-
-**Current defense:** None. No deduplication by name, Aadhaar, or phone.
-
-**Judge Defense:** _"In production, we'd use Aadhaar-linked verification (DigiLocker API) or phone OTP to create unique identity binding. For the hackathon demo, we focused on the assessment verification flow, which is our core innovation."_
-
----
-
-### Attack: **Age Manipulation**
-
-**How it works:** Register a 19-year-old as "14" to compete in U-14 categories where they'd dominate and get higher percentiles.
-
-**Current defense:** None. Age is self-reported with no document verification.
-
-**Judge Defense:** _"In production, age verification would be linked to Aadhaar/birth certificate. The assessment data would also flag this naturally — a 19-year-old competing as U-14 would have physically impossible benchmarks for that category, triggering our fraud detection engine."_
-
----
-
-### Attack: **Voice Input Spoofing**
-
-**How it works:** Play a pre-recorded audio clip of someone else's voice into the Web Speech API.
-
-**Current defense:** None. The voice input has no biometric verification.
-
-**Judge Defense:** _"Voice input is for convenience, not authentication. The coach operating the device is the trusted party, verified through their Firebase Auth session. Voice input just saves typing time in Tamil."_
-
----
-
-## 5. 📊 TALENT SCORING — GAMING THE SYSTEM
-
-### Attack: **Mental Score Manipulation**
-
-**How it works:** Answer all 15 mental assessment questions as "5" (highest). Instantly get a 100/100 mental score, boosting total composite by 25%.
-
-**Code proof (talentScoring.js:105):**
-
-```js
-const composite = physicalScore * 0.6 + mentalScore * 0.25 + trustScore * 0.15;
+FIX 3 (Production): Organization-based access. A coach must be
+registered under a school/academy. Their assessments carry the
+school's reputation. Schools with too many flagged assessments
+get their trust score reduced system-wide.
 ```
 
-**Current defense:** None. Self-assessment is unmonitored.
-
-**Judge Defense:** _"Mental profiling is a self-assessment tool for coaches, not a competitive metric. In production, we'd validate mental scores against behavioral patterns — an athlete who 'bounces back quickly from losses' but has a declining performance trend would be flagged for score inflation."_
-
 ---
 
-### Attack: **Scheme Eligibility Gaming**
+## CATEGORY 4: FRAUD DETECTION IS EASILY BYPASSED
 
-**How it works:** Register as female (when male) to qualify for the "Women in Sports Initiative" (₹1,00,000). Register with an artificially high talent rating to qualify for TOPS (₹10,00,000+, requires 90th percentile).
+### What We Claim
 
-**Code proof (schemes.js:92):**
+"AI-powered fraud detection flags anomalies"
+
+### What Actually Happens
+
+The fraud detection ONLY catches values outside pre-defined ranges:
 
 ```js
-eligibility: {
-  genders: ["female"];
-} // Only checks the gender field
+'100m': { min: 9.5, max: 20.0, mean: 13.5, stdDev: 1.2 }
 ```
 
-**Current defense:** None — no identity document verification.
+**Anything between 9.5s and 20.0s passes without any flag.** So if a U-14 athlete actually runs 100m in 15s, and the coach writes 11s (a massive improvement but still "in range"), the system says ✅ no anomaly.
 
-**Judge Defense:** _"Scheme matching is informational only — SENTRAK tells athletes what they MIGHT qualify for. Actual scheme disbursement requires government verification through separate channels. We're the discovery layer, not the payment layer."_
+### The Real Problem
+
+The system has NO concept of:
+
+- **Historical comparison**: "This athlete's previous 100m was 15s, now suddenly 11s?" ← not checked
+- **Age-appropriate limits**: A 12-year-old running 11s for 100m is suspicious, but the range check is the same for all ages
+- **Cross-metric consistency**: An athlete with a slow 30m sprint but an elite 100m time is physically inconsistent ← not checked
+- **Geographic baseline**: Average performance varies by district/region ← not considered
+
+### THE FIX
+
+```
+FIX 1 (Historical delta): When saving an assessment, load the athlete's
+previous assessments. If any metric improved by more than 2 standard
+deviations in less than 30 days, flag it as "Suspicious Improvement."
+
+FIX 2 (Cross-metric validation): If 30m_sprint is slow (>6s) but 100m
+is fast (<12s), that's physically impossible. Add cross-metric rules:
+- 100m should roughly be 3.2x the 30m time
+- 600m should proportionally relate to 60m
+Flag inconsistencies.
+
+FIX 3 (Age-adjusted ranges): Replace the single PERFORMANCE_RANGES with
+age-group-specific ranges. A 10-year-old and a 17-year-old have very
+different expected performance.
+```
 
 ---
 
-## 6. 🔥 FIREBASE — BACKEND VULNERABILITIES
+## CATEGORY 5: ANYONE CAN CREATE INFINITE FAKE ATHLETES
 
-### Attack: **Demo Credentials Exposed**
+### What We Claim
 
-**How it works:** The firebase.js file has demo fallback keys hardcoded in source code. Anyone can read them from the public build.
+"Digital talent passports for rural athletes"
 
-**Code proof (firebase.js:9):**
+### What Actually Happens
+
+Registration has ZERO identity verification:
+
+- Name: any text
+- Age: any number (can register as 5 or 50)
+- Sport: any selection
+- Photo: optional, can be any image
+- No Aadhaar, no school ID, no parent verification
+
+**One person can create 1000 fake athletes in an hour.** Each gets a unique QR passport. Each looks "legitimate."
+
+### Why This Matters
+
+If scouts are searching for athletes and 80% of the database is fake, the platform is useless. This is the "garbage in, garbage out" problem — and we have no gate.
+
+### THE FIX
+
+```
+FIX 1 (Phone binding): Require a unique phone number per athlete.
+Send a real OTP to verify. One phone = one athlete profile. This
+eliminates mass fake registration.
+
+FIX 2 (Coach-gated): Only registered coaches can create athlete
+profiles. The coach's identity is stamped on the athlete record.
+If a coach creates 50 athletes in one day, flag them.
+
+FIX 3 (Document verification): Require a school ID or Aadhaar
+number during registration. Even partial verification (last 4 digits)
+creates an identity anchor. Use DigiLocker API for document pull.
+
+FIX 4 (Rate limiting): Maximum 10 athlete registrations per device
+per day. Store device fingerprint to prevent circumvention.
+```
+
+---
+
+## CATEGORY 6: THE "OFFLINE SYNC" NEVER ACTUALLY SYNCS
+
+### What We Claim
+
+"Works offline. Auto-syncs when online."
+
+### What Actually Happens
+
+The sync queue (`addToSyncQueue`) stores items in IndexedDB. But **there is no sync function that actually pushes data to Firebase.** The `useOfflineSync` hook exists but it doesn't actually sync — it just manages the queue.
 
 ```js
-apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'demo-api-key',
+// offlineDB.js — there's addToSyncQueue, getSyncQueue, removeFromSyncQueue
+// BUT there's no function that actually sends data to Firestore
 ```
 
-**Current defense:** Demo keys point to a non-existent project.
-**Gap:** If real keys are deployed without env vars, they'd be visible in the browser bundle.
+**Every byte of data lives exclusively on the user's device.** If they clear their browser, EVERYTHING is gone. There is no server-side backup. There is no cross-device access.
 
-**Judge Defense:** _"Firebase API keys are designed to be public — they only identify the project. Security comes from Firebase Security Rules, which restrict read/write access. The demo keys are placeholders; production uses environment variables."_
+### Why This Matters
 
----
+If a judge asks "what happens if the phone breaks?" — the honest answer is "all data is lost." That's a fundamental failure for a platform claiming to create "permanent digital records."
 
-## 7. 🌐 OFFLINE MODE — SYNC VULNERABILITIES
+### THE FIX
 
-### Attack: **Offline Queue Poisoning**
+```
+FIX 1 (Real sync - 2 hours): Write a syncToFirebase() function that:
+- Gets all items from syncQueue
+- For each item, writes to the appropriate Firestore collection
+- On success, removes from syncQueue
+- On failure, increments a retry counter
+- Call this function whenever navigator.onLine transitions to true
 
-**How it works:** While offline, submit hundreds of fake assessments. They all queue in syncQueue. When the device reconnects, they all sync to Firebase in bulk.
+FIX 2 (Export fallback): Add a "Download My Data" button that exports
+all localStorage data as a JSON file. The user can email it to themselves
+as a backup. Simple, but it works.
 
-**Current defense:** None. The sync queue accepts everything.
-
-**Judge Defense:** _"Server-side Firebase Cloud Functions would validate each synced record against our anomaly thresholds before writing to the main collection. Poisoned records would be quarantined."_
-
----
-
-### Attack: **Conflict Resolution Exploits**
-
-**How it works:** Two devices assess the same athlete offline. Both sync different data when reconnecting. Which one wins?
-
-**Current defense:** None — no conflict resolution strategy implemented.
-
-**Judge Defense:** _"In production, we'd use Firestore's merge semantics with timestamps. Both records would be preserved with their assessment timestamps, and the athlete's composite score would be recalculated from ALL assessments."_
+FIX 3 (Production): Firebase Firestore with offline persistence enabled
+(we have this in firebase.js but never actually read/write to Firestore
+for athlete data).
+```
 
 ---
 
-## 8. 📱 SCOUT DASHBOARD — DATA INTEGRITY
+## CATEGORY 7: SCHEME MATCHER COULD ENABLE FINANCIAL FRAUD
 
-### Attack: **Fake Offers**
+### What We Claim
 
-**How it works:** Scout creates "Scholarship Offers" that are purely localStorage mock data. An athlete sees "Offer Pending" but it's meaningless.
+"Match athletes to ₹5L+ government schemes automatically"
 
-**Current defense:** None — offers are completely local.
+### What Actually Happens
 
-**Judge Defense:** _"The recruitment portal is a demonstration of the marketplace flow. In production, offers would be routed through a verification layer where scout organizations are verified entities with KYC."_
+The scheme matcher has NO verification:
+
+- Athlete claims age 14 → qualifies for U-14 schemes (no age proof)
+- Athlete claims female → qualifies for Women in Sports (no gender proof)
+- Talent rating is locally computed → inflate it to qualify for TOPS (₹10L+, needs 90th percentile)
+
+**Someone could register a fake athlete, inflate their stats, and then screenshot SENTRAK showing "You qualify for ₹10,00,000 TOPS scholarship!" to fraudulently apply for government schemes.**
+
+### THE FIX
+
+```
+FIX 1 (Disclaimer): Add a clear disclaimer: "These are potential matches
+only. Actual eligibility requires government verification." Show this
+prominently on every scheme card.
+
+FIX 2 (Verification status): Only show high-value schemes (₹1L+) for
+athletes with VERIFIED assessments (3 witnesses + no anomaly flags).
+Unverified athletes only see low-value awareness schemes.
+
+FIX 3 (Production): Integrate with government portal APIs to check
+actual eligibility. Gene rate a "pre-application" that the athlete
+takes to the government office WITH their SENTRAK data for verification.
+```
 
 ---
 
-## 🛡️ OVERALL DEFENSE STRATEGY (For Judges)
+## CATEGORY 8: VIDEO CAPTURE IS POINTLESS WITHOUT METADATA
 
-When a judge asks about security, use this **3-layer defense:**
+### What We Claim
 
-1. **"We built the trust protocol"** — Community attestation with 3 witnesses + OTP is MORE verification than ANY existing grassroots sports system in India (which has ZERO digital records)
+"Video evidence of assessments"
 
-2. **"Client is untrusted, server is secured"** — Every web app's client can be manipulated. That's why we hash at creation time, sync to Firebase, and make records append-only server-side
+### What Actually Happens
 
-3. **"We detect, not prevent"** — Our fraud detection engine flags anomalies statistically. Combined with reputation scoring, video evidence, and cross-referencing across time, manipulation becomes increasingly difficult and traceable
+VideoClipCapture.jsx records a 15-second clip. But:
 
-> **The key insight:** SENTRAK doesn't need to be unhackable. It needs to be BETTER than the current system (paper records, no records, or fabricated certificates) — and it is orders of magnitude better.
+- No timestamp burned into the video
+- No GPS coordinates embedded
+- No athlete identification in the video
+- No connection between the video and the assessment data
+- Videos are stored as blobs in memory — they disappear on page refresh
+
+A coach could record a video of a fast runner at a district meet, then attach it to a different (slower) athlete's assessment. The video "proves" nothing.
+
+### THE FIX
+
+```
+FIX 1 (Metadata overlay): Burn the athlete name, timestamp, GPS
+coordinates, and assessment ID directly onto the video frames as
+a watermark. Now the video is tied to the specific assessment.
+
+FIX 2 (Live capture only): Disable the ability to upload pre-recorded
+videos. Only allow live camera capture with a countdown timer that
+matches the assessment timer. This proves the video and the assessment
+happened simultaneously.
+
+FIX 3 (Storage): Save video clips to Firebase Storage with the
+assessment ID as the filename. Link the download URL to the
+assessment record. Without persistent storage, videos are meaningless.
+```
+
+---
+
+## CATEGORY 9: THE ENTIRE TRUST MODEL COLLAPSES
+
+### The Fundamental Flaw
+
+SENTRAK's trust model assumes:
+
+1. Coaches are honest ← **no incentive structure to keep them honest**
+2. Witnesses are independent ← **no verification that they're not the coach's friends**
+3. Data is immutable once hashed ← **client-side hashing is meaningless**
+4. The platform creates accountability ← **no login, no audit trail**
+
+**The result:** Any single bad actor — one corrupt coach — can fill the database with fabricated verified-looking records. There's no mechanism to discover this, report it, or correct it.
+
+### THE COMPREHENSIVE FIX (Production Roadmap)
+
+```
+LAYER 1 — Identity: Every user (coach, athlete, scout, witness) has a
+verified phone-based account. Cross-reference with DigiLocker for age/identity.
+
+LAYER 2 — Accountability: Every action (registration, assessment,
+attestation, offer) is signed with the user's account. Audit trail is
+immutable in Firestore.
+
+LAYER 3 — Separation of Concerns: The assessor (coach), the witnesses,
+and the data entry operator must be different accounts. The system
+enforces this by checking phone numbers.
+
+LAYER 4 — Statistical Detection: Cross-athlete analysis. If Coach X's
+athletes consistently score 2σ above Coach Y's athletes in the same
+district, flag Coach X for review.
+
+LAYER 5 — Community Reporting: Allow athletes, parents, and coaches
+to REPORT suspicious assessments. Create a dispute resolution flow.
+
+LAYER 6 — Decay: Assessment records lose "verified" status after 6
+months unless re-verified. This prevents stale fabricated data from
+persisting forever.
+```
+
+---
+
+## CATEGORY 10: GAP BETWEEN DEMO AND REALITY
+
+### Things We Show That Don't Actually Work
+
+| Feature Shown                 | Reality                                                  |
+| ----------------------------- | -------------------------------------------------------- |
+| "2,847 Athletes Discovered"   | Hardcoded counter animation. Real count: 10 demo records |
+| "12,430 Assessments Recorded" | Same. Zero real assessments exist                        |
+| "23/38 Districts Active"      | No district tracking exists                              |
+| "OTP Verified ✓"              | Accepts any 6 digits                                     |
+| "SHA-256 Tamper-Proof"        | Client-side, re-hashable                                 |
+| "Offline Sync"                | Queue exists, sync doesn't                               |
+| "Revenue: ₹2.19 Cr ARR"       | No paying users, no pricing validated                    |
+| "Government Scheme Match"     | No actual API integration                                |
+
+### THE FIX
+
+```
+For the demo, be HONEST about what's real vs. simulated:
+- "The OTP flow demonstrates the 3-witness protocol. In production,
+  this integrates with MSG91/Twilio for real SMS."
+- "The hash demonstrates tamper-detection. In production, hashes are
+  stored in write-once server storage."
+- "The counters represent projected scale based on our TAM analysis."
+
+DON'T pretend everything works end-to-end if it doesn't. Judges respect
+honesty about what's demo vs. production far more than being caught in
+a fake.
+```
+
+---
+
+## 📋 PRIORITY FIX LIST (What To Actually Implement)
+
+### Can Fix RIGHT NOW (next prompt round):
+
+| #   | Fix                                                                      | Time   | Impact                                          |
+| --- | ------------------------------------------------------------------------ | ------ | ----------------------------------------------- |
+| 1   | **Generated OTP display** — show a random code, require exact match      | 30 min | 🔴 Critical — makes attestation demo believable |
+| 2   | **Integrity verification button** — re-hash and compare on profile       | 20 min | 🟡 High — shows tamper detection works          |
+| 3   | **Coach phone stamp** — add `recordedBy` field with phone number         | 15 min | 🟡 High — creates accountability                |
+| 4   | **Historical delta check** — flag suspicious improvements                | 30 min | 🟡 High — makes fraud detection real            |
+| 5   | **Scheme disclaimer** — "Eligibility subject to government verification" | 5 min  | 🟢 Quick — prevents misrepresentation           |
+| 6   | **Honest landing stats** — show real localStorage counts                 | 15 min | 🟢 Quick — matches reality                      |
+
+### Can Fix In Production (talk about these):
+
+| #   | Fix                                  | Complexity            |
+| --- | ------------------------------------ | --------------------- |
+| 7   | Firebase Phone Auth for all users    | Medium                |
+| 8   | Server-side hashing with secret salt | Medium                |
+| 9   | Real Twilio SMS OTP                  | Easy (API key needed) |
+| 10  | Firestore sync from offline queue    | Medium                |
+| 11  | Cross-metric consistency validation  | Easy                  |
+| 12  | Age-adjusted performance ranges      | Easy                  |
+| 13  | Video metadata watermarking          | Hard                  |
+| 14  | Community reporting / dispute flow   | Hard                  |

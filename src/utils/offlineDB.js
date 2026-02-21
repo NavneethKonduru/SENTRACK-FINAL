@@ -1,5 +1,5 @@
 /* ========================================
-   SENTRAK — IndexedDB Offline Storage
+   SENTRAK — IndexedDB Offline Storage Reliability
    Owner: Sharvesh (feat/assessment)
    Uses: idb library (in package.json)
    ======================================== */
@@ -32,119 +32,168 @@ export function initDB() {
                     db.createObjectStore('syncQueue', { keyPath: 'id' });
                 }
             },
+        }).catch(err => {
+            console.warn('[OfflineDB] Initialization failed. Falling back to memory/localStorage operations.', err);
+            dbPromise = null;
+            return null;
         });
     }
     return dbPromise;
 }
 
-// ─── Athletes ──────────────────────────────────────
+// ========================================
+// MEMORY/LOCALSTORAGE FALLBACK UTILS
+// ========================================
+
+const getLocal = (key) => {
+    try { return JSON.parse(localStorage.getItem(`sentrak_fallback_${key}`) || '[]'); }
+    catch { return []; }
+};
+
+const setLocal = (key, data) => {
+    try { localStorage.setItem(`sentrak_fallback_${key}`, JSON.stringify(data)); }
+    catch (e) { console.warn('[OfflineDB] LocalStorage write failed', e); }
+};
+
+// ========================================
+// Athletes
+// ========================================
 
 export async function saveAthlete(athlete) {
     try {
         const db = await initDB();
+        if (!db) throw new Error('IDB unavailable');
         await db.put('athletes', athlete);
         return athlete;
     } catch (err) {
-        console.error('[offlineDB] saveAthlete error:', err);
-        throw err;
+        console.warn('[offlineDB] saveAthlete IDB failed. Using fallback:', err);
+        const athletes = getLocal('athletes');
+        const idx = athletes.findIndex(a => a.id === athlete.id);
+        if (idx >= 0) athletes[idx] = athlete;
+        else athletes.push(athlete);
+        setLocal('athletes', athletes);
+        return athlete;
     }
 }
 
 export async function getAthlete(id) {
     try {
         const db = await initDB();
+        if (!db) throw new Error('IDB unavailable');
         return await db.get('athletes', id);
     } catch (err) {
-        console.error('[offlineDB] getAthlete error:', err);
-        return null;
+        console.warn('[offlineDB] getAthlete IDB failed. Using fallback:', err);
+        return getLocal('athletes').find(a => a.id === id) || null;
     }
 }
 
 export async function getAllAthletes() {
     try {
         const db = await initDB();
+        if (!db) throw new Error('IDB unavailable');
         return await db.getAll('athletes');
     } catch (err) {
-        console.error('[offlineDB] getAllAthletes error:', err);
-        return [];
+        console.warn('[offlineDB] getAllAthletes IDB failed. Using fallback:', err);
+        return getLocal('athletes');
     }
 }
 
-// ─── Assessments ───────────────────────────────────
+// ========================================
+// Assessments
+// ========================================
 
 export async function saveAssessment(assessment) {
     try {
         const db = await initDB();
+        if (!db) throw new Error('IDB unavailable');
         await db.put('assessments', assessment);
         return assessment;
     } catch (err) {
-        console.error('[offlineDB] saveAssessment error:', err);
-        throw err;
+        console.warn('[offlineDB] saveAssessment IDB failed. Using fallback:', err);
+        const assessments = getLocal('assessments');
+        assessments.push(assessment);
+        setLocal('assessments', assessments);
+        return assessment;
     }
 }
 
 export async function getAssessmentsByAthlete(athleteId) {
     try {
         const db = await initDB();
+        if (!db) throw new Error('IDB unavailable');
         return await db.getAllFromIndex('assessments', 'athleteId', athleteId);
     } catch (err) {
-        console.error('[offlineDB] getAssessmentsByAthlete error:', err);
-        return [];
+        console.warn('[offlineDB] getAssessmentsByAthlete IDB failed. Using fallback:', err);
+        return getLocal('assessments').filter(a => a.athleteId === athleteId);
     }
 }
 
 export async function getAllAssessments() {
     try {
         const db = await initDB();
+        if (!db) throw new Error('IDB unavailable');
         return await db.getAll('assessments');
     } catch (err) {
-        console.error('[offlineDB] getAllAssessments error:', err);
-        return [];
+        console.warn('[offlineDB] getAllAssessments IDB failed. Using fallback:', err);
+        return getLocal('assessments');
     }
 }
 
-// ─── Sync Queue ────────────────────────────────────
+// ========================================
+// Sync Queue
+// ========================================
 
 export async function addToSyncQueue(item) {
+    const entry = {
+        ...item,
+        id: item.id || crypto.randomUUID(),
+        queuedAt: Date.now(),
+    };
+
     try {
         const db = await initDB();
-        const entry = {
-            ...item,
-            id: item.id || crypto.randomUUID(),
-            queuedAt: Date.now(),
-        };
+        if (!db) throw new Error('IDB unavailable');
         await db.put('syncQueue', entry);
         return entry;
     } catch (err) {
-        console.error('[offlineDB] addToSyncQueue error:', err);
-        throw err;
+        console.warn('[offlineDB] addToSyncQueue IDB failed. Using fallback:', err);
+        const q = getLocal('syncQueue');
+        q.push(entry);
+        setLocal('syncQueue', q);
+        return entry;
     }
 }
 
 export async function getSyncQueue() {
     try {
         const db = await initDB();
+        if (!db) throw new Error('IDB unavailable');
         return await db.getAll('syncQueue');
     } catch (err) {
-        console.error('[offlineDB] getSyncQueue error:', err);
-        return [];
+        console.warn('[offlineDB] getSyncQueue IDB failed. Using fallback:', err);
+        return getLocal('syncQueue');
     }
 }
 
 export async function removeFromSyncQueue(id) {
     try {
         const db = await initDB();
+        if (!db) throw new Error('IDB unavailable');
         await db.delete('syncQueue', id);
     } catch (err) {
-        console.error('[offlineDB] removeFromSyncQueue error:', err);
+        console.warn('[offlineDB] removeFromSyncQueue IDB failed. Using fallback:', err);
+        const q = getLocal('syncQueue').filter(i => i.id !== id);
+        setLocal('syncQueue', q);
     }
 }
 
 export async function clearSyncQueue() {
     try {
         const db = await initDB();
+        if (!db) throw new Error('IDB unavailable');
         await db.clear('syncQueue');
     } catch (err) {
-        console.error('[offlineDB] clearSyncQueue error:', err);
+        console.warn('[offlineDB] clearSyncQueue IDB failed. Using fallback:', err);
+        setLocal('syncQueue', []);
     }
 }

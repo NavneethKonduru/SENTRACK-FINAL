@@ -56,13 +56,28 @@ export function AuthProvider({ children }) {
 
   // Setup reCAPTCHA (invisible)
   function setupRecaptcha(elementId) {
-    if (!window.recaptchaVerifier) {
+    const el = document.getElementById(elementId);
+    if (!el) {
+      console.warn(`[Auth] Recaptcha element #${elementId} not found in DOM`);
+      return null;
+    }
+
+    if (window.recaptchaVerifier) {
+      try {
+        window.recaptchaVerifier.clear();
+      } catch (e) {}
+    }
+
+    try {
       window.recaptchaVerifier = new RecaptchaVerifier(auth, elementId, {
         size: 'invisible',
         callback: () => {},
       });
+      return window.recaptchaVerifier;
+    } catch (err) {
+      console.error('[Auth] Recaptcha initialization failed:', err);
+      return null;
     }
-    return window.recaptchaVerifier;
   }
 
   // Send OTP

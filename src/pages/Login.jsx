@@ -26,7 +26,7 @@ export default function Login() {
       setStep('otp');
     } catch (err) {
       console.error('[Login] OTP send failed:', err);
-      setError('Could not send OTP. Check your number or try Demo Mode.');
+      setError(`Error: ${err.message || 'Could not send OTP.'} Try Demo Mode if this persists.`);
     }
     setLoading(false);
   };

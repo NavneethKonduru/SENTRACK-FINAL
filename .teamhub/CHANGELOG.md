@@ -35,6 +35,26 @@ Types: FEAT | FIX | MERGE | BRANCH | SYNC | DESIGN | DATA
 [17:15 IST] SHARVESH feat/assessment BRANCH — Tagged snapshot/assessment-v1 (all 14 files built and verified)
 ```
 
+### Scout Phase (Uday)
+
+```
+[18:30 IST] UDAY feat/scout DATA — tn-districts.json: 38 TN districts with Tamil names, populations, taluks
+[18:30 IST] UDAY feat/scout DATA — sai-benchmarks.json: 8 SAI tests × 5 age groups × 2 genders
+[18:35 IST] UDAY feat/scout FEAT — districts.js: inline district data + search/filter utilities
+[18:35 IST] UDAY feat/scout FEAT — talentScoring.js: percentile calc, composite scoring (60/25/15), rating conversion (1000-2500)
+[18:40 IST] UDAY feat/scout FEAT — SearchFilters.jsx: sport/age/gender/district/rating/mental filters with searchable dropdown
+[18:40 IST] UDAY feat/scout FEAT — AthleteRanking.jsx: leaderboard table with sortable cols, gold/silver/bronze top-3, tier badges
+[18:45 IST] UDAY feat/scout FEAT — TalentHeatMap.jsx: hex-grid TN map (38 districts), color-intensity by athlete count, hover tooltips
+[18:45 IST] UDAY feat/scout FEAT — DiscoveryFeed.jsx: live auto-scrolling feed with 20 entries, pause-on-hover, relative timestamps
+[18:50 IST] UDAY feat/scout FEAT — RecruitmentPortal.jsx: modal offer form, localStorage persistence, status management
+[18:50 IST] UDAY feat/scout FEAT — OfferCard.jsx: offer display card with type badges, accept/decline actions
+[18:55 IST] UDAY feat/scout FEAT — ScoutDashboard.jsx: tab nav (Search/HeatMap/Rankings/Feed/Recruitment), sidebar layout
+[18:55 IST] UDAY feat/scout FEAT — ScoutView.jsx: page wrapper with localStorage + DEMO_ATHLETES merge, filter state mgmt
+[19:00 IST] UDAY feat/scout FEAT — RevenueCalculator.jsx: 5-slider calculator, animated INR, 3yr projection (20% YoY)
+[19:00 IST] UDAY feat/scout FEAT — ScaleMetrics.jsx: 6-stat animated counter grid with IntersectionObserver
+[19:05 IST] UDAY feat/scout BRANCH — Tagged snapshot/scout-v1, v2, v3-final (all 14 files built, verified, pushed)
+```
+
 ---
 
 ## Active Snapshot Branches (safe rollback points)
@@ -42,6 +62,9 @@ Types: FEAT | FIX | MERGE | BRANCH | SYNC | DESIGN | DATA
 | Branch | Time  | Description                                         |
 | ------ | ----- | --------------------------------------------------- |
 | `main` | 14:45 | Scaffold — all pages render, design system complete |
+| `snapshot/scout-v1` | 19:05 | Core search + data + utilities |
+| `snapshot/scout-v2` | 19:05 | Heatmap + Feed + Marketplace |
+| `snapshot/scout-v3-final` | 19:05 | All 14 scout files complete |
 
 ---
 
@@ -54,3 +77,6 @@ Types: FEAT | FIX | MERGE | BRANCH | SYNC | DESIGN | DATA
 | 14:45 | `dataShapes.js` created     | ALL     | Import shapes from `src/utils/dataShapes.js` |
 | 14:45 | `index.css` design system   | ALL     | Use CSS classes only, no inline styles       |
 | 14:45 | Routes defined in `App.jsx` | ALL     | Export default from your page files          |
+| 19:05 | `districts.js` created      | ALL     | Import from `src/utils/districts.js` for TN district data |
+| 19:05 | `talentScoring.js` created  | ALL     | Import from `src/utils/talentScoring.js` for percentile/composite scoring |
+| 19:05 | Offers stored in localStorage | ALL   | Key: `sentrak_offers` — use `createOffer()` from dataShapes |

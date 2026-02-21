@@ -1,6 +1,7 @@
 /* ========================================
-   SENTRAK — useVoiceInput Hook
-   Custom React hook for Web Speech API
+   SENTRAK — useVoiceInput Hook (Phase 2)
+   Robust Web Speech API with timeout,
+   retry logic, and graceful fallbacks
    Owner: Rahul (feat/athlete)
    ======================================== */
 
@@ -10,8 +11,12 @@ const SpeechRecognition = typeof window !== 'undefined'
     ? window.SpeechRecognition || window.webkitSpeechRecognition
     : null;
 
+const MAX_RETRIES = 3;
+const TIMEOUT_MS = 10000; // 10 seconds max listening with no result
+
 /**
  * Custom hook for voice input using Web Speech API
+ * Degrades gracefully: if unsupported, all functions are no-ops.
  * @param {Object} options
  * @param {string} options.language - 'ta-IN' for Tamil, 'en-IN' for English
  * @param {boolean} options.continuous - keep listening after result
@@ -26,21 +31,36 @@ export default function useVoiceInput({
     const [transcript, setTranscript] = useState('');
     const [interimTranscript, setInterimTranscript] = useState('');
     const [error, setError] = useState(null);
+    const [fallbackToText, setFallbackToText] = useState(false);
     const recognitionRef = useRef(null);
+    const timeoutRef = useRef(null);
+    const failCountRef = useRef(0);
     const isSupported = !!SpeechRecognition;
 
-    // Cleanup on unmount
-    useEffect(() => {
-        return () => {
-            if (recognitionRef.current) {
-                try { recognitionRef.current.abort(); } catch (_) { /* noop */ }
-            }
-        };
+    // Clear timeout helper
+    const clearTimeoutSafe = useCallback(() => {
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+        }
     }, []);
 
+    // Cleanup on unmount — ALWAYS stop to prevent zombie sessions
+    useEffect(() => {
+        return () => {
+            clearTimeoutSafe();
+            if (recognitionRef.current) {
+                try { recognitionRef.current.abort(); } catch (_) { /* noop */ }
+                recognitionRef.current = null;
+            }
+        };
+    }, [clearTimeoutSafe]);
+
     const startListening = useCallback(() => {
+        // If not supported, set fallback and return (no crash)
         if (!SpeechRecognition) {
-            setError('Speech recognition not supported in this browser');
+            setError('Voice input not supported in this browser');
+            setFallbackToText(true);
             return;
         }
 
@@ -48,6 +68,7 @@ export default function useVoiceInput({
         if (recognitionRef.current) {
             try { recognitionRef.current.abort(); } catch (_) { /* noop */ }
         }
+        clearTimeoutSafe();
 
         setError(null);
         setInterimTranscript('');
@@ -59,11 +80,25 @@ export default function useVoiceInput({
         recognition.maxAlternatives = 1;
         recognitionRef.current = recognition;
 
+        // Timeout: auto-stop after 10s with no result
+        timeoutRef.current = setTimeout(() => {
+            if (recognitionRef.current) {
+                try { recognitionRef.current.stop(); } catch (_) { /* noop */ }
+            }
+            setIsListening(false);
+            setError('No speech detected. Please try again or type instead.');
+            failCountRef.current += 1;
+            if (failCountRef.current >= MAX_RETRIES) {
+                setFallbackToText(true);
+            }
+        }, TIMEOUT_MS);
+
         recognition.onstart = () => {
             setIsListening(true);
         };
 
         recognition.onresult = (event) => {
+            clearTimeoutSafe(); // Got a result, cancel timeout
             let interim = '';
             let final = '';
 
@@ -81,29 +116,37 @@ export default function useVoiceInput({
             }
 
             if (final) {
-                setTranscript(final.trim());
+                const trimmed = final.trim();
+                setTranscript(trimmed);
                 setInterimTranscript('');
+                failCountRef.current = 0; // Reset fail counter on success
                 if (onResult) {
-                    onResult(final.trim());
+                    onResult(trimmed);
                 }
             }
         };
 
         recognition.onerror = (event) => {
+            clearTimeoutSafe();
             let errorMsg = 'Speech recognition error';
+
             switch (event.error) {
                 case 'not-allowed':
                 case 'service-not-allowed':
-                    errorMsg = 'Microphone permission denied';
+                    errorMsg = 'Microphone permission denied. Please allow mic access in Settings.';
+                    setFallbackToText(true);
                     break;
                 case 'no-speech':
-                    errorMsg = 'No speech detected';
+                    errorMsg = 'No speech detected. Tap the mic and speak clearly.';
+                    failCountRef.current += 1;
                     break;
                 case 'audio-capture':
-                    errorMsg = 'No microphone found';
+                    errorMsg = 'No microphone found. Please connect a microphone.';
+                    setFallbackToText(true);
                     break;
                 case 'network':
-                    errorMsg = 'Network error during recognition';
+                    errorMsg = 'Speech recognition needs internet. Type your answer instead.';
+                    setFallbackToText(true);
                     break;
                 case 'aborted':
                     // User intentionally stopped — not an error
@@ -111,7 +154,14 @@ export default function useVoiceInput({
                     return;
                 default:
                     errorMsg = `Recognition error: ${event.error}`;
+                    failCountRef.current += 1;
             }
+
+            // After 3 consecutive failures, suggest text fallback
+            if (failCountRef.current >= MAX_RETRIES) {
+                setFallbackToText(true);
+            }
+
             setError(errorMsg);
             setIsListening(false);
         };
@@ -124,16 +174,31 @@ export default function useVoiceInput({
         try {
             recognition.start();
         } catch (err) {
+            clearTimeoutSafe();
             setError('Failed to start speech recognition');
             setIsListening(false);
+            failCountRef.current += 1;
+            if (failCountRef.current >= MAX_RETRIES) {
+                setFallbackToText(true);
+            }
         }
-    }, [language, continuous, onResult]);
+    }, [language, continuous, onResult, clearTimeoutSafe]);
 
     const stopListening = useCallback(() => {
+        clearTimeoutSafe();
         if (recognitionRef.current) {
             try { recognitionRef.current.stop(); } catch (_) { /* noop */ }
         }
         setIsListening(false);
+    }, [clearTimeoutSafe]);
+
+    const clearError = useCallback(() => {
+        setError(null);
+    }, []);
+
+    const resetFallback = useCallback(() => {
+        setFallbackToText(false);
+        failCountRef.current = 0;
     }, []);
 
     return {
@@ -143,6 +208,9 @@ export default function useVoiceInput({
         startListening,
         stopListening,
         error,
+        clearError,
         isSupported,
+        fallbackToText,
+        resetFallback,
     };
 }

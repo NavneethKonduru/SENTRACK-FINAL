@@ -5,7 +5,7 @@ import LandingHero from '../components/demo/LandingHero';
 
 export default function Landing() {
   return (
-    <div style={{ marginTop: '-16px', marginLeft: '-16px', marginRight: '-16px' }}>
+    <div style={{ width: '100%', overflowX: 'hidden' }}>
       <LandingHero />
 
       {/* Feature Cards */}
@@ -13,12 +13,12 @@ export default function Landing() {
         <h2 className="heading-2 text-center mb-xl">How SENTRAK Works</h2>
         <div className="grid grid-3" style={{ maxWidth: '1200px', margin: '0 auto' }}>
           {[
-            { icon: UserPlus, title: 'Register Athlete', desc: 'Voice-first Tamil registration. Speak name, age, sport — zero typing needed.', link: '/register', color: 'var(--accent-primary)' },
-            { icon: Timer, title: 'Record Assessment', desc: 'SAI-standard 8-test battery + sport-specific metrics with built-in timer.', link: '/assess', color: 'var(--accent-secondary)' },
-            { icon: Shield, title: 'Community Verify', desc: '3 witnesses attest with OTP. Social proof + SHA-256 tamper-proof hashing.', link: '/assess', color: 'var(--accent-success)' },
-            { icon: Search, title: 'Scout Discovery', desc: 'Search athletes by sport, age, district. Filter by talent rating and mental score.', link: '/scout', color: 'var(--accent-warning)' },
-            { icon: MapPin, title: 'Talent Heat Map', desc: 'Interactive Tamil Nadu map shows talent density. Click any district to discover.', link: '/scout', color: 'var(--accent-danger)' },
-            { icon: Trophy, title: 'District Challenges', desc: '"Fastest U-16 in your district" — drives organic data collection and engagement.', link: '/challenges', color: 'var(--accent-gold)' },
+            { icon: UserPlus, title: 'Register Athlete', desc: 'Voice-first Tamil registration. Speak name, age, sport — zero typing needed.', link: '/login', color: 'var(--accent-primary)' },
+            { icon: Timer, title: 'Record Assessment', desc: 'SAI-standard 8-test battery + sport-specific metrics with built-in timer.', link: '/login', color: 'var(--accent-secondary)' },
+            { icon: Shield, title: 'Community Verify', desc: '3 witnesses attest with OTP. Social proof + SHA-256 tamper-proof hashing.', link: '/login', color: 'var(--accent-success)' },
+            { icon: Search, title: 'Scout Discovery', desc: 'Search athletes by sport, age, district. Filter by talent rating and mental score.', link: '/login', color: 'var(--accent-warning)' },
+            { icon: MapPin, title: 'Talent Heat Map', desc: 'Interactive Tamil Nadu map shows talent density. Click any district to discover.', link: '/login', color: 'var(--accent-danger)' },
+            { icon: Trophy, title: 'District Challenges', desc: '"Fastest U-16 in your district" — drives organic data collection and engagement.', link: '/login', color: 'var(--accent-gold)' },
           ].map((feature, i) => (
             <Link to={feature.link} key={i} className="glass-card hover-lift" style={{ textDecoration: 'none', color: 'inherit' }}>
               <div style={{ width: 48, height: 48, borderRadius: 'var(--radius-md)', background: `${feature.color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 'var(--space-md)' }}>
@@ -26,9 +26,6 @@ export default function Landing() {
               </div>
               <h3 className="heading-4" style={{ marginBottom: 'var(--space-xs)' }}>{feature.title}</h3>
               <p className="text-secondary" style={{ fontSize: '0.9rem', lineHeight: '1.5' }}>{feature.desc}</p>
-              <div style={{ marginTop: 'var(--space-md)', color: feature.color, fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
-                Explore <ChevronRight size={14} />
-              </div>
             </Link>
           ))}
         </div>
@@ -51,8 +48,7 @@ export default function Landing() {
           Works offline. Works on 2G. Works for everyone.
         </p>
         <div className="flex justify-center gap-md" style={{ flexWrap: 'wrap' }}>
-          <Link to="/register" className="btn btn-primary btn-lg">Register an Athlete</Link>
-          <Link to="/scout" className="btn btn-secondary btn-lg">Scout Dashboard</Link>
+          <Link to="/login" className="btn btn-primary btn-lg">Login / Get Started</Link>
         </div>
       </section>
     </div>

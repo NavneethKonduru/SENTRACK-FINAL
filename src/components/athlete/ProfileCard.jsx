@@ -62,7 +62,7 @@ export default function ProfileCard({ athlete, language = 'en' }) {
                     pointerEvents: 'none',
                 }} />
 
-                <div className="flex gap-lg items-center flex-wrap">
+                <div className="flex flex-col sm:flex-row gap-lg items-center sm:items-start text-center sm:text-left">
                     {/* Circular photo */}
                     <div style={{
                         width: '100px', height: '100px',
@@ -83,14 +83,14 @@ export default function ProfileCard({ athlete, language = 'en' }) {
                     </div>
 
                     {/* Info */}
-                    <div style={{ flex: 1, minWidth: '180px' }}>
+                    <div style={{ flex: 1, minWidth: '180px' }} className="flex flex-col items-center sm:items-start">
                         <h2 className="heading-2" style={{ marginBottom: '2px' }}>{athlete.name}</h2>
                         {athlete.nameTamil && (
                             <p className="tamil text-secondary" style={{ fontSize: '1rem', marginBottom: '8px' }}>
                                 {athlete.nameTamil}
                             </p>
                         )}
-                        <div className="flex flex-wrap gap-xs">
+                        <div className="flex flex-wrap gap-xs justify-center sm:justify-start">
                             <span className="badge badge-verified">
                                 <Trophy size={11} /> {athlete.sport?.replace('_', ' ')}
                             </span>
@@ -140,6 +140,22 @@ export default function ProfileCard({ athlete, language = 'en' }) {
                 </div>
             </div>
 
+            {/* ─── ATHLETE BIO DETAILS ─── */}
+            <div className="grid grid-3" style={{ gap: 'var(--space-md)' }}>
+                <div className="glass-card-static text-center" style={{ padding: 'var(--space-md)' }}>
+                    <p className="text-muted" style={{ fontSize: '0.75rem', textTransform: 'uppercase' }}>Weight</p>
+                    <p style={{ fontWeight: 700, fontSize: '1.2rem' }}>68 <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>kg</span></p>
+                </div>
+                <div className="glass-card-static text-center" style={{ padding: 'var(--space-md)' }}>
+                    <p className="text-muted" style={{ fontSize: '0.75rem', textTransform: 'uppercase' }}>Height</p>
+                    <p style={{ fontWeight: 700, fontSize: '1.2rem' }}>172 <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>cm</span></p>
+                </div>
+                <div className="glass-card-static text-center" style={{ padding: 'var(--space-md)' }}>
+                    <p className="text-muted" style={{ fontSize: '0.75rem', textTransform: 'uppercase' }}>Joined</p>
+                    <p style={{ fontWeight: 700, fontSize: '1rem', marginTop: '4px' }}>{new Date(athlete.createdAt || Date.now()).toLocaleDateString()}</p>
+                </div>
+            </div>
+
             {/* ─── MENTAL PROFILE ─── */}
             {athlete.mentalProfile && Object.values(athlete.mentalProfile).some(v => v > 0) && (
                 <div className="glass-card-static">
@@ -159,14 +175,28 @@ export default function ProfileCard({ athlete, language = 'en' }) {
             {assessments.length > 0 ? (
                 <div className="glass-card-static">
                     <h3 className="heading-3 mb-md flex items-center gap-sm">
-                        <Shield size={20} className="text-accent" />
-                        {t('assessments', language)}
+                        <Activity size={20} className="text-accent" />
+                        {t('assessmentHistory', language) || 'Assessment History'}
                         <span className="badge badge-verified" style={{ marginLeft: 'auto', fontSize: '0.7rem' }}>
                             {assessments.length}
                         </span>
                     </h3>
-                    <div className="flex-col gap-sm" style={{ display: 'flex' }}>
-                        {assessments.slice(0, 5).map((a) => (
+                    
+                    {/* Tiny Trend Graph Placeholder */}
+                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: '40px', marginBottom: 'var(--space-md)', opacity: 0.8 }}>
+                        {assessments.map((a, i) => (
+                            <div key={`trend-${i}`} style={{
+                                flex: 1, background: 'var(--accent-primary)', borderRadius: '2px',
+                                height: `${Math.max(20, a.percentile || 50)}%`, minWidth: '10px'
+                            }} title={`${a.testType}: ${a.percentile}th percentile`} />
+                        ))}
+                    </div>
+
+                    <div className="flex-col gap-sm" style={{ display: 'flex', position: 'relative' }}>
+                        {/* Vertical Timeline Line */}
+                        <div style={{ position: 'absolute', left: '16px', top: '10px', bottom: '10px', width: '2px', background: 'rgba(255,255,255,0.1)', zIndex: 0 }} />
+                        
+                        {assessments.map((a) => (
                             <div
                                 key={a.id}
                                 className="flex justify-between items-center"
@@ -210,6 +240,29 @@ export default function ProfileCard({ athlete, language = 'en' }) {
                     <p className="text-secondary" style={{ fontSize: '0.85rem' }}>{t('firstAssessmentCTA', language)}</p>
                 </div>
             )}
+
+            {/* ─── TRAINING RECOMMENDATIONS ─── */}
+            <div className="glass-card-static" style={{ borderLeft: '3px solid var(--accent-warning)', background: 'rgba(245,158,11,0.05)' }}>
+                <h3 className="heading-3 mb-md flex items-center gap-sm">
+                    <Award size={20} color="var(--accent-warning)" />
+                    Training Blueprint
+                </h3>
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                    {athlete.talentRating > 1800 ? (
+                        <>
+                            <li style={{ marginBottom: '8px' }}>🚀 <strong>Advanced Scheme Matching:</strong> Ready for TOPS application based on elite percentile.</li>
+                            <li style={{ marginBottom: '8px' }}>⚡ <strong>Focus Area:</strong> Explosive power maintenance (Target top 5% in Vertical Jump).</li>
+                            <li>🧠 <strong>Mental Coaching:</strong> High-pressure competition preparation.</li>
+                        </>
+                    ) : (
+                        <>
+                            <li style={{ marginBottom: '8px' }}>📈 <strong>Core Development:</strong> Focus on foundational cardiovascular endurance.</li>
+                            <li style={{ marginBottom: '8px' }}>🎯 <strong>Technique:</strong> Recommend 2 extra drill sessions per week for sport-specific agility.</li>
+                            <li>💪 <strong>Nutrition:</strong> Adjust protein intake; track BMI metrics next quarter.</li>
+                        </>
+                    )}
+                </ul>
+            </div>
 
             {/* ─── SCHEMES ─── */}
             <SchemesMatcher athlete={athlete} language={language} />

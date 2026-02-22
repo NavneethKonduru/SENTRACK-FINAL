@@ -71,7 +71,7 @@ export default function LandingHero() {
         {/* Counter */}
         <div className="animate-slide-up stagger-1" style={{ marginBottom: 'var(--space-md)' }}>
           <span style={{
-            fontSize: 'clamp(3rem, 8vw, 5rem)',
+            fontSize: 'clamp(2.5rem, 8vw, 5rem)',
             fontWeight: 900,
             background: 'var(--gradient-hero)',
             WebkitBackgroundClip: 'text',
@@ -104,11 +104,8 @@ export default function LandingHero() {
 
         {/* CTA Buttons */}
         <div className="animate-slide-up stagger-4 flex justify-center gap-md" style={{ flexWrap: 'wrap' }}>
-          <Link to="/register" className="btn btn-primary btn-lg animate-glow">
-            Register Athlete <ArrowRight size={18} />
-          </Link>
-          <Link to="/demo" className="btn btn-secondary btn-lg">
-            <Globe size={18} /> Live Demo
+          <Link to="/login" className="btn btn-primary btn-lg animate-glow">
+            Access Platform <ArrowRight size={18} />
           </Link>
         </div>
 

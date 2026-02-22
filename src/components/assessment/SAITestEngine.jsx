@@ -250,7 +250,7 @@ export default function SAITestEngine({ athleteId, athleteInfo = { ageGroup: 'U-
             {phase === 'test' && (
                 <div className="animate-scale-in">
                     {isTimer ? (
-                        <TimerWidget onStop={handleTimerStop} countdownEnabled={true} autoStart={false} />
+                        <TimerWidget onStop={handleTimerStop} countdownEnabled={false} autoStart={false} />
                     ) : isBMI ? (
                         <div className="glass-card-static" style={{ maxWidth: '400px', margin: '0 auto', textAlign: 'center' }}>
                             <div className="form-group mb-md" style={{ textAlign: 'left' }}>

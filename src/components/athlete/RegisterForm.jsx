@@ -556,7 +556,7 @@ export default function RegisterForm() {
                             />
                             <div style={{
                                 maxHeight: '240px', overflowY: 'auto',
-                                display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+                                display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
                                 gap: '8px',
                             }}>
                                 {filteredDistricts.map((d) => (
@@ -798,13 +798,13 @@ export default function RegisterForm() {
             </div>
 
             {/* Navigation */}
-            <div className="flex justify-between gap-md">
+            <div className="flex gap-md" style={{ width: '100%', marginTop: 'var(--space-md)' }}>
                 {step > 1 ? (
-                    <button type="button" className="btn btn-secondary" onClick={handleBack}>
+                    <button type="button" className="btn btn-secondary" onClick={handleBack} style={{ flex: 1 }}>
                         <ChevronLeft size={18} /> {t('back', language)}
                     </button>
                 ) : (
-                    <div />
+                    <div style={{ flex: 1 }} />
                 )}
                 {step < TOTAL_STEPS ? (
                     <button
@@ -812,7 +812,7 @@ export default function RegisterForm() {
                         className="btn btn-primary"
                         onClick={handleNext}
                         disabled={!canProceed()}
-                        style={{ opacity: canProceed() ? 1 : 0.5, transition: 'opacity 0.2s ease' }}
+                        style={{ flex: 1, opacity: canProceed() ? 1 : 0.5, transition: 'opacity 0.2s ease' }}
                     >
                         {t('next', language)} <ChevronRight size={18} />
                     </button>
@@ -823,8 +823,8 @@ export default function RegisterForm() {
                         onClick={handleSubmit}
                         disabled={saving}
                         style={{
+                            flex: 1,
                             background: saving ? undefined : 'var(--gradient-hero)',
-                            minWidth: '200px',
                         }}
                     >
                         {saving ? (

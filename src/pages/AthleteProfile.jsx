@@ -18,6 +18,7 @@ import ProfileCard from '../components/athlete/ProfileCard';
 import QRPassport from '../components/athlete/QRPassport';
 import MentalProfileForm from '../components/athlete/MentalProfileForm';
 import LanguageToggle, { LanguageProvider, useLanguage } from '../components/shared/LanguageToggle';
+import { useAuth } from '../contexts/AuthContext';
 
 /* ── Skeleton loading shimmer ── */
 function ProfileSkeleton() {
@@ -72,6 +73,7 @@ function AthleteProfileContent() {
   const [athlete, setAthlete] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showMentalForm, setShowMentalForm] = useState(false);
+  const { isCoach } = useAuth();
   const [activeTab, setActiveTab] = useState('profile');
 
   useEffect(() => {
@@ -287,19 +289,21 @@ function AthleteProfileContent() {
         <>
           <ProfileCard athlete={athlete} language={language} />
 
-          {/* Quick actions */}
-          <div className="flex gap-sm mt-lg flex-wrap">
-            <Link to={`/assess/${athlete.id}`} className="btn btn-primary" style={{ flex: 1 }}>
-              <ClipboardList size={16} /> {t('newAssessment', language)}
-            </Link>
-            <button
-              className="btn btn-secondary"
-              onClick={() => { setActiveTab('mental'); setShowMentalForm(true); }}
-              style={{ flex: 1 }}
-            >
-              <Brain size={16} /> {t('mentalAssessment', language)}
-            </button>
-          </div>
+          {/* Quick actions - Authorized roles only */}
+          {isCoach && (
+            <div className="flex gap-sm mt-lg flex-wrap">
+              <Link to={`/assess/${athlete.id}`} className="btn btn-primary" style={{ flex: 1 }}>
+                <ClipboardList size={16} /> {t('newAssessment', language)}
+              </Link>
+              <button
+                className="btn btn-secondary"
+                onClick={() => { setActiveTab('mental'); setShowMentalForm(true); }}
+                style={{ flex: 1 }}
+              >
+                <Brain size={16} /> {t('mentalAssessment', language)}
+              </button>
+            </div>
+          )}
         </>
       )}
     </div>

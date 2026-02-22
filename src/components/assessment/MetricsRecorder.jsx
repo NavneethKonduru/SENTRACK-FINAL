@@ -23,6 +23,7 @@ export default function MetricsRecorder({ sport, athleteId, onComplete }) {
     };
 
     const handleManualChange = (key, val) => {
+        // Unrestricted manual entry to support negative sit and reach values
         setValues(prev => ({ ...prev, [key]: val }));
         if (val && !completedKeys.includes(key)) setCompletedKeys(prev => [...prev, key]);
         if (!val) setCompletedKeys(prev => prev.filter(k => k !== key));
@@ -32,7 +33,7 @@ export default function MetricsRecorder({ sport, athleteId, onComplete }) {
         const step = parseFloat(stepStr) || 1;
         setValues(prev => {
             const cur = parseFloat(prev[key] || 0);
-            const newVal = Math.max(0, cur + (direction * step)).toFixed(step < 1 ? 2 : 1);
+            const newVal = (cur + (direction * step)).toFixed(step < 1 ? 2 : 1);
             if (!completedKeys.includes(key)) setCompletedKeys(prev => [...prev, key]);
             return { ...prev, [key]: String(newVal) };
         });
@@ -173,6 +174,7 @@ export default function MetricsRecorder({ sport, athleteId, onComplete }) {
                                                 onChange={e => handleManualChange(metric.key, e.target.value)}
                                                 inputMode="decimal"
                                                 step={stepSize}
+                                                min="0"
                                                 style={{ width: '100%', textAlign: 'center', fontSize: '2.5rem', height: '70px', fontFamily: 'var(--font-mono)', fontWeight: 800, border: 'none', background: 'transparent' }}
                                             />
                                             <div style={{ position: 'absolute', right: '10px', bottom: '15px', color: 'var(--text-muted)' }}>{metric.unit}</div>

@@ -59,7 +59,7 @@ function heatGlow(count, max) {
     return 'none';
 }
 
-export default function TalentHeatMap({ athletes: propAthletes }) {
+export default function TalentHeatMap({ athletes: propAthletes, onDistrictSelect }) {
     const [hoveredDistrict, setHovered] = useState(null);
     const [selectedDistrict, setSelected] = useState(null);
     const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
@@ -138,7 +138,7 @@ export default function TalentHeatMap({ athletes: propAthletes }) {
             </div>
 
             <div className="glass-card" style={{ padding: 'var(--space-md)', overflow: 'auto' }}>
-                <div style={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
+                <div className="heatmap-svg-container" style={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
                     <svg width={svgW} height={svgH} viewBox={`0 0 ${svgW} ${svgH}`} style={{ maxWidth: '100%', height: 'auto' }}>
                         {/* Ambient glow background */}
                         <defs>
@@ -165,7 +165,12 @@ export default function TalentHeatMap({ athletes: propAthletes }) {
                                 <g key={hex.id}
                                     onMouseEnter={e => handleHover(hex.id, e)}
                                     onMouseLeave={() => setHovered(null)}
-                                    onClick={() => setSelected(selectedDistrict === hex.id ? null : hex.id)}
+                                    onClick={() => {
+                                        setSelected(selectedDistrict === hex.id ? null : hex.id);
+                                        if (onDistrictSelect && selectedDistrict !== hex.id) {
+                                            onDistrictSelect(dist.name);
+                                        }
+                                    }}
                                     style={{ cursor: 'pointer' }}
                                 >
                                     <polygon
@@ -226,7 +231,59 @@ export default function TalentHeatMap({ athletes: propAthletes }) {
                         </div>
                     )}
                 </div>
+
+                {/* Mobile List View fallback */}
+                <div className="heatmap-list-container pb-md">
+                    <p className="text-secondary text-sm mb-md">Top districts by verified athlete density:</p>
+                    <div className="flex-col gap-sm" style={{ display: 'flex' }}>
+                        {Object.entries(stats)
+                            .filter(([_, data]) => data.count > 0)
+                            .sort((a, b) => b[1].count - a[1].count)
+                            .map(([id, data]) => {
+                                const dist = districts.find(d => d.id === id);
+                                if (!dist) return null;
+                                return (
+                                    <button 
+                                        key={id}
+                                        className="glass-card hover-lift flex items-center justify-between w-full"
+                                        style={{ 
+                                            padding: '12px 16px', 
+                                            border: selectedDistrict === id ? '1px solid var(--accent-secondary)' : undefined,
+                                            background: selectedDistrict === id ? 'rgba(6, 182, 212, 0.1)' : undefined
+                                        }}
+                                        onClick={() => {
+                                            setSelected(selectedDistrict === id ? null : id);
+                                            if (onDistrictSelect && selectedDistrict !== id) {
+                                                onDistrictSelect(dist.name);
+                                            }
+                                        }}
+                                    >
+                                        <div className="flex items-center gap-sm">
+                                            <div style={{ width: 12, height: 12, borderRadius: '50%', background: heatGradient(data.count, maxCount) }} />
+                                            <div className="text-left">
+                                                <div className="font-bold text-primary">{dist.name}</div>
+                                                <div className="text-muted text-xs">{topSport(id)}</div>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-xs font-mono font-bold text-accent">
+                                            {data.count} <Users size={12} />
+                                        </div>
+                                    </button>
+                                );
+                            })
+                        }
+                    </div>
+                </div>
             </div>
+
+            <style>{`
+                .heatmap-svg-container { display: block; }
+                .heatmap-list-container { display: none; }
+                @media (max-width: 768px) {
+                    .heatmap-svg-container { display: none; }
+                    .heatmap-list-container { display: block; }
+                }
+            `}</style>
 
             {/* Selected district athletes */}
             {selectedDistrict && selAthletes.length > 0 && (

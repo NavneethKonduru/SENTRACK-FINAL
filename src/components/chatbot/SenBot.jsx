@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Bot, Mic, X, Send, Command, Volume2 } from 'lucide-react';
 import { classifyIntent } from '../../utils/chatIntents';
 
@@ -11,7 +11,7 @@ export default function SenBot() {
   const [input, setInput] = useState('');
   const [isListening, setIsListening] = useState(false);
   const scrollRef = useRef(null);
-  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -26,20 +26,20 @@ export default function SenBot() {
     setMessages(prev => [...prev, userMsg]);
     setInput('');
 
+    // Prepare Context
+    const athletesCount = JSON.parse(localStorage.getItem('sentrak_athletes') || '[]').length;
+    const context = {
+      path: location.pathname,
+      athletesCount: athletesCount,
+      isOnline: navigator.onLine
+    };
+
     // Classify intent
-    const intent = classifyIntent(text);
+    const intent = classifyIntent(text, context);
     
     setTimeout(() => {
-      const botMsg = { role: 'bot', text: intent.response };
+      const botMsg = { role: 'bot', text: intent.response, link: intent.link };
       setMessages(prev => [...prev, botMsg]);
-
-      // Execute action
-      if (intent.action === 'navigate') {
-        setTimeout(() => {
-          navigate(intent.target);
-          setIsOpen(false);
-        }, 1000);
-      }
 
       // Voice output
       if (window.speechSynthesis) {
@@ -122,17 +122,28 @@ export default function SenBot() {
           {/* Messages */}
           <div ref={scrollRef} style={{ flex: 1, padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {messages.map((m, i) => (
-              <div key={i} style={{
-                alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
-                maxWidth: '85%',
-                padding: '0.8rem 1.2rem',
-                borderRadius: m.role === 'user' ? '18px 18px 0 18px' : '18px 18px 18px 0',
-                background: m.role === 'user' ? 'var(--accent-primary)' : 'var(--bg-tertiary)',
-                color: '#fff',
-                fontSize: '0.95rem',
-                boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
-              }}>
-                {m.text}
+              <div key={i} style={{ alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '85%' }}>
+                <div style={{
+                  padding: '0.8rem 1.2rem', lineHeight: '1.4',
+                  borderRadius: m.role === 'user' ? '18px 18px 0 18px' : '18px 18px 18px 0',
+                  background: m.role === 'user' ? 'var(--accent-primary)' : 'var(--bg-tertiary)',
+                  color: '#fff', fontSize: '0.95rem', boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
+                }}>
+                  {m.text}
+                </div>
+                {m.link && (
+                  <button 
+                    onClick={() => { navigate(m.link.target); setIsOpen(false); }}
+                    style={{
+                      marginTop: '8px', padding: '0.6rem 1rem', fontSize: '0.85rem', fontWeight: 600,
+                      background: 'rgba(0, 212, 170, 0.15)', color: 'var(--accent-primary)',
+                      border: '1px solid var(--accent-primary)', borderRadius: '12px',
+                      cursor: 'pointer', display: 'inline-block', transition: 'all 0.2s'
+                    }}
+                  >
+                    {m.link.label}
+                  </button>
+                )}
               </div>
             ))}
           </div>

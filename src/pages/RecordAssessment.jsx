@@ -517,7 +517,7 @@ export default function RecordAssessment() {
 
         {/* Safety Navigation Back Controls & Next Navigation */}
         {!done && (
-          <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, padding: '16px 24px', background: 'rgba(10, 14, 39, 0.95)', backdropFilter: 'blur(20px)', borderTop: '1px solid rgba(255,255,255,0.1)', zIndex: 100, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ position: 'fixed', bottom: '70px', left: 0, right: 0, padding: '16px 24px', background: 'rgba(10, 14, 39, 0.95)', backdropFilter: 'blur(20px)', borderTop: '1px solid rgba(255,255,255,0.1)', zIndex: 100, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <button
               className="btn btn-ghost text-muted hover:text-white flex items-center gap-xs"
               style={{ visibility: step > 0 && step < 4 ? 'visible' : 'hidden' }}

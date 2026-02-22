@@ -6,6 +6,17 @@
 import { db } from '../firebase';
 import { collection, doc, setDoc, getDoc, getDocs, query, where, orderBy, deleteDoc } from 'firebase/firestore';
 
+function queueForSync(type, data) {
+  try {
+    const queue = JSON.parse(localStorage.getItem('sentrak_fallback_syncQueue') || '[]');
+    queue.push({ id: data.id || Date.now().toString(), type, data, timestamp: Date.now() });
+    localStorage.setItem('sentrak_fallback_syncQueue', JSON.stringify(queue));
+    console.log(`[Sync Engine] Queued ${type} for offline sync.`);
+  } catch (err) {
+    console.warn('[Sync Engine] Failed to queue offline item', err);
+  }
+}
+
 // ========================================
 // Users
 // ========================================
@@ -35,6 +46,10 @@ export async function setUserProfile(uid, data) {
 // ========================================
 
 export async function saveAthleteToCloud(athlete) {
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    queueForSync('athlete', athlete);
+    return false;
+  }
   try {
     await setDoc(doc(db, 'athletes', athlete.id), {
       ...athlete,
@@ -42,7 +57,8 @@ export async function saveAthleteToCloud(athlete) {
     });
     return true;
   } catch (err) {
-    console.warn('[Firestore] saveAthlete failed:', err);
+    console.warn('[Firestore] saveAthlete failed, queueing offline:', err);
+    queueForSync('athlete', athlete);
     return false;
   }
 }
@@ -87,6 +103,10 @@ export async function getAthletesByCoach(coachUid) {
 // ========================================
 
 export async function saveAssessmentToCloud(assessment) {
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    queueForSync('assessment', assessment);
+    return false;
+  }
   try {
     await setDoc(doc(db, 'assessments', assessment.id), {
       ...assessment,
@@ -94,7 +114,8 @@ export async function saveAssessmentToCloud(assessment) {
     });
     return true;
   } catch (err) {
-    console.warn('[Firestore] saveAssessment failed:', err);
+    console.warn('[Firestore] saveAssessment failed, queueing offline:', err);
+    queueForSync('assessment', assessment);
     return false;
   }
 }
@@ -117,11 +138,16 @@ export const getAssessmentsByAthleteId = getAssessmentsByAthleteCloud;
 // ========================================
 
 export async function saveCertificateToCloud(cert) {
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    queueForSync('certificate', cert);
+    return false;
+  }
   try {
     await setDoc(doc(db, 'certificates', cert.id), { ...cert, updatedAt: Date.now() });
     return true;
   } catch (err) {
-    console.warn('[Firestore] saveCertificate failed:', err);
+    console.warn('[Firestore] saveCertificate failed, queueing offline:', err);
+    queueForSync('certificate', cert);
     return false;
   }
 }
@@ -183,3 +209,25 @@ export async function syncOfflineQueue() {
     return { synced: 0, error: err.message };
   }
 }
+
+export async function pullCloudDataToLocal() {
+  if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+  try {
+    const cloudAthletes = await getAllAthletesFromCloud();
+    if (cloudAthletes.length > 0) {
+      const local = JSON.parse(localStorage.getItem('sentrak_athletes') || '[]');
+      const localIds = new Set(local.map(a => a.id));
+      
+      const newCloud = cloudAthletes.filter(a => !localIds.has(a.id));
+      
+      // Update local storage with any net-new athletes from other devices
+      if (newCloud.length > 0) {
+        localStorage.setItem('sentrak_athletes', JSON.stringify([...local, ...newCloud]));
+        console.log(`[Sync] Pulled ${newCloud.length} cloud athletes downward into local cache.`);
+      }
+    }
+  } catch (err) {
+    console.warn('[Sync] Failed to pull cloud data:', err);
+  }
+}
+

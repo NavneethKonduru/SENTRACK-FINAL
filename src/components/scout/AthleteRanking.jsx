@@ -148,7 +148,13 @@ export default function AthleteRanking({ athletes = [], filters = {} }) {
                                                 <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{a.name}</div>
                                                 {a.nameTamil && <div className="tamil text-muted" style={{ fontSize: '0.65rem' }}>{a.nameTamil}</div>}
                                             </div>
-                                            {verified && <CheckCircle size={13} color="var(--accent-success)" style={{ flexShrink: 0 }} />}
+                                            {verified ? (
+                                                <span title="Verified" style={{ fontSize: '10px', flexShrink: 0 }}>🟢</span>
+                                            ) : a.attestations?.length > 0 ? (
+                                                <span title="Partial" style={{ fontSize: '10px', flexShrink: 0 }}>🟡</span>
+                                            ) : (
+                                                <span title="Unverified" style={{ fontSize: '10px', flexShrink: 0 }}>🔴</span>
+                                            )}
                                         </div>
                                     </td>
                                     <td>
@@ -207,7 +213,16 @@ export default function AthleteRanking({ athletes = [], filters = {} }) {
                                     {a.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                                 </div>
                                 <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{a.name}</div>
+                                    <div style={{ fontWeight: 600, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        {a.name}
+                                        {a.attestations?.length >= 3 || a.syncStatus === 'synced' ? (
+                                            <span style={{ fontSize: '9px' }}>🟢</span>
+                                        ) : a.attestations?.length > 0 ? (
+                                            <span style={{ fontSize: '9px' }}>🟡</span>
+                                        ) : (
+                                            <span style={{ fontSize: '9px' }}>🔴</span>
+                                        )}
+                                    </div>
                                     <div className="text-muted" style={{ fontSize: '0.7rem' }}>{a.sport?.replace(/_/g, ' ')} · {a.district}</div>
                                 </div>
                                 <div style={{ textAlign: 'right' }}>

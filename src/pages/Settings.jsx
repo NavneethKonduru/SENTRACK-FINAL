@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { User, Globe, Bell, Database, Info, LogOut, ChevronRight } from 'lucide-react';
+import { User, Globe, Bell, Database, Info, LogOut, ChevronRight, Award } from 'lucide-react';
 
 export default function Settings() {
-  const { user, role, demoMode, logout } = useAuth();
+  const { user, role, logout } = useAuth();
   const navigate = useNavigate();
   const [language, setLanguage] = useState(localStorage.getItem('sentrak_language') || 'en');
   const [stats, setStats] = useState({ athletes: 0, assessments: 0 });
@@ -46,6 +46,17 @@ export default function Settings() {
     }
   };
 
+  const handleClearCache = () => {
+    if (confirm('Clear local cache? This removes downloaded data. (Offline items not yet synced to cloud will be lost).')) {
+      localStorage.removeItem('sentrak_athletes');
+      localStorage.removeItem('sentrak_assessments');
+      localStorage.removeItem('sentrak_demo_seeded');
+      setStats({ athletes: 0, assessments: 0 });
+      alert('Cache cleared successfully. Reloading platform...');
+      window.location.reload();
+    }
+  };
+
   const ROLE_LABELS = { coach: '🏫 Coach', scout: '🔍 Scout', athlete: '🏃 Athlete', admin: '🛡️ Admin' };
 
   return (
@@ -65,7 +76,7 @@ export default function Settings() {
           </div>
           <div>
             <h3 style={{ fontSize: '1.1rem', marginBottom: '0.2rem' }}>
-              {user?.displayName || (demoMode ? 'Demo User' : 'User')}
+              {user?.displayName || 'User'}
             </h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: 0 }}>
               {user?.phoneNumber || '+91 XXXXXXXXXX'}
@@ -117,6 +128,36 @@ export default function Settings() {
         </div>
       </div>
 
+      {/* Notifications */}
+      <div className="card" style={{ padding: '1.25rem', marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+          <Bell size={20} style={{ color: 'var(--accent-warning)' }} />
+          <p style={{ fontWeight: '600', fontSize: '0.95rem', margin: 0 }}>Notifications</p>
+        </div>
+        
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+          <div>
+            <p style={{ fontWeight: '500', fontSize: '0.9rem', margin: '0 0 2px' }}>Push Notifications</p>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', margin: 0 }}>Alerts for new schemes and offers</p>
+          </div>
+          <label className="ios-switch">
+            <input type="checkbox" defaultChecked />
+            <span className="ios-slider"></span>
+          </label>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <p style={{ fontWeight: '500', fontSize: '0.9rem', margin: '0 0 2px' }}>Assessment Reminders</p>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', margin: 0 }}>Weekly prompts to update stats</p>
+          </div>
+          <label className="ios-switch">
+            <input type="checkbox" defaultChecked />
+            <span className="ios-slider"></span>
+          </label>
+        </div>
+      </div>
+
       {/* Data Management */}
       <div className="card" style={{ padding: '1.25rem', marginBottom: '1rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
@@ -147,21 +188,49 @@ export default function Settings() {
           </div>
         </div>
 
-        <button
-          onClick={handleExport}
-          className="btn"
-          style={{
-            width: '100%', padding: '0.7rem', fontSize: '0.9rem',
-            background: 'var(--bg-tertiary)', border: '1px solid var(--border-primary)',
-            borderRadius: '10px', color: 'var(--text-primary)', cursor: 'pointer',
-          }}
-        >
-          📥 Export My Data (JSON)
-        </button>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+          <button
+            onClick={handleExport}
+            className="btn"
+            style={{
+              padding: '0.7rem', fontSize: '0.85rem',
+              background: 'var(--bg-tertiary)', border: '1px solid var(--border-primary)',
+              borderRadius: '10px', color: 'var(--text-primary)', cursor: 'pointer',
+            }}
+          >
+            📥 Export JSON
+          </button>
+          <button
+            onClick={handleClearCache}
+            className="btn"
+            style={{
+              padding: '0.7rem', fontSize: '0.85rem',
+              background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)',
+              borderRadius: '10px', color: 'var(--status-error)', cursor: 'pointer',
+            }}
+          >
+            🗑️ Clear Cache
+          </button>
+        </div>
 
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '0.5rem', textAlign: 'center' }}>
-          {navigator.onLine ? '🟢 Online — syncing to cloud' : '🔴 Offline — data saved locally'}
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '1rem', textAlign: 'center' }}>
+          {navigator.onLine ? '🟢 Online — Live Cloud Syncing' : '🔴 Offline — Priority Local Write'}
         </p>
+      </div>
+
+      {/* Business Model */}
+      <div className="card" style={{ padding: '1.25rem', marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+          <Award size={20} style={{ color: 'var(--accent-gold)' }} />
+          <p style={{ fontWeight: '600', fontSize: '0.95rem', margin: 0 }}>SENTRAK Business Model</p>
+        </div>
+        <ul style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: 0, paddingLeft: '1.2rem', lineHeight: 1.6 }}>
+          <li style={{ marginBottom: '8px' }}><strong>Free for Athletes:</strong> Core mission—no corruption, no bias.</li>
+          <li style={{ marginBottom: '8px' }}><strong>Academy Subs:</strong> ₹999/month for bulk athlete management.</li>
+          <li style={{ marginBottom: '8px' }}><strong>Scout Licenses:</strong> ₹4,999/month for advanced discovery tools.</li>
+          <li style={{ marginBottom: '8px' }}><strong>Official Fees:</strong> ₹199/assessment for verification services.</li>
+          <li><strong>B2G SaaS:</strong> Data pipeline for Khelo India / SAI.</li>
+        </ul>
       </div>
 
       {/* About */}
@@ -190,6 +259,25 @@ export default function Settings() {
       >
         <LogOut size={18} /> Logout
       </button>
+      <style>{`
+        .ios-switch { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; }
+        .ios-switch input { opacity: 0; width: 0; height: 0; }
+        .ios-slider {
+          position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+          background-color: var(--bg-tertiary); transition: .3s; border-radius: 24px;
+          border: 1px solid var(--border-primary);
+        }
+        .ios-slider:before {
+          position: absolute; content: ""; height: 18px; width: 18px; left: 2px; bottom: 2px;
+          background-color: var(--text-secondary); transition: .3s; border-radius: 50%;
+        }
+        .ios-switch input:checked + .ios-slider {
+          background-color: var(--accent-primary); border-color: var(--accent-primary);
+        }
+        .ios-switch input:checked + .ios-slider:before {
+          transform: translateX(20px); background-color: #fff;
+        }
+      `}</style>
     </div>
   );
 }

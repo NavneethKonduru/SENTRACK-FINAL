@@ -21,6 +21,13 @@ const DIM_COLORS = {
     strategy: '#10b981',
     discipline: '#8b5cf6',
 };
+const DIM_DESCRIPTIONS = {
+    toughness: "Mental resilience and ability to perform under pressure or adversity.",
+    teamwork: "Capacity to collaborate, communicate, and support teammates.",
+    drive: "Intrinsic motivation, goal persistence, and ambition to improve.",
+    strategy: "Tactical awareness, quick decision-making, and adaptability.",
+    discipline: "Consistency in training, focus, and adherence to routines."
+};
 
 export default function MentalProfileForm({ onComplete, athleteId }) {
     const { language } = useLanguage();
@@ -130,8 +137,11 @@ export default function MentalProfileForm({ onComplete, athleteId }) {
                     </div>
 
                     {/* Result message */}
-                    <p className="text-accent mb-lg" style={{ fontSize: '1.2rem', fontWeight: 700 }}>
+                    <p className="text-accent mb-xs" style={{ fontSize: '1.2rem', fontWeight: 700 }}>
                         {resultMsg}
+                    </p>
+                    <p className="text-muted mb-lg" style={{ fontSize: '0.75rem', maxWidth: '400px', margin: '0 auto' }}>
+                        * Based on established sports psychology frameworks (CSAI-2, ACSI-28).
                     </p>
 
                     {/* Radar chart */}
@@ -166,6 +176,9 @@ export default function MentalProfileForm({ onComplete, athleteId }) {
                                         transition: 'width 0.8s ease',
                                     }} />
                                 </div>
+                                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '4px', lineHeight: 1.3 }}>
+                                    {DIM_DESCRIPTIONS[dim]}
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -193,9 +206,14 @@ export default function MentalProfileForm({ onComplete, athleteId }) {
             <div className="flex justify-between items-center" style={{ marginBottom: 'var(--space-lg)' }}>
                 <div className="flex items-center gap-sm">
                     <Brain size={20} className="text-accent" />
-                    <span className="text-secondary" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
-                        {t('mentalAssessment', language)}
-                    </span>
+                    <div>
+                        <div className="text-secondary" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+                            {t('mentalAssessment', language)}
+                        </div>
+                        <div className="text-muted" style={{ fontSize: '0.65rem' }}>
+                            Based on CSAI-2 & ACSI-28
+                        </div>
+                    </div>
                 </div>
 
                 {/* Circular progress */}

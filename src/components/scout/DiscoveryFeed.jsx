@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Radio, CheckCircle, Clock, TrendingUp, Eye, Star, Send, Loader } from 'lucide-react';
 import { getAllAthletes, getAllAssessments } from '../../utils/demoLoader';
-import { getRatingTier } from '../../utils/dataShapes';
+import { getRatingTier, getAgeGroup } from '../../utils/dataShapes';
+import { toast } from '../shared/Toast';
 
 function timeAgo(ts) {
     const d = Date.now() - ts;
@@ -68,7 +69,7 @@ function buildFeedEntries(athletes, assessments) {
 
 const PAGE_SIZE = 6;
 
-export default function DiscoveryFeed() {
+export default function DiscoveryFeed({ athletes: propAthletes, filters = {} }) {
     const [allEntries, setAllEntries] = useState([]);
     const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
     const [loading, setLoading] = useState(false);
@@ -77,13 +78,25 @@ export default function DiscoveryFeed() {
     });
 
     useEffect(() => {
-        const ath = getAllAthletes();
+        const ath = propAthletes?.length ? propAthletes : getAllAthletes();
         const ass = getAllAssessments();
         setAllEntries(buildFeedEntries(ath, ass));
-    }, []);
+    }, [propAthletes]);
 
-    const visible = allEntries.slice(0, visibleCount);
-    const hasMore = visibleCount < allEntries.length;
+    const filteredEntries = useMemo(() => {
+        let list = [...allEntries];
+        const f = filters;
+        const activeSports = f.sports?.length ? f.sports : (f.sport ? [f.sport] : []);
+        if (activeSports.length) list = list.filter(e => activeSports.includes(e.sport));
+        if (f.ageGroup) list = list.filter(e => getAgeGroup(e.age) === f.ageGroup);
+        if (f.district) list = list.filter(e => e.district?.toLowerCase() === f.district?.toLowerCase());
+        if (f.minRating > 1000) list = list.filter(e => (e.talentRating || 0) >= f.minRating);
+        if (f.verifiedOnly) list = list.filter(e => e.verified);
+        return list;
+    }, [allEntries, filters]);
+
+    const visible = filteredEntries.slice(0, visibleCount);
+    const hasMore = visibleCount < filteredEntries.length;
 
     const loadMore = () => {
         setLoading(true);
@@ -94,9 +107,15 @@ export default function DiscoveryFeed() {
     };
 
     const toggleShortlist = (id) => {
-        const next = shortlisted.includes(id) ? shortlisted.filter(x => x !== id) : [...shortlisted, id];
+        const isCurrentlyShortlisted = shortlisted.includes(id);
+        const next = isCurrentlyShortlisted ? shortlisted.filter(x => x !== id) : [...shortlisted, id];
         setShortlisted(next);
         localStorage.setItem('sentrak_shortlist', JSON.stringify(next));
+        if (!isCurrentlyShortlisted) toast.success('Added to Shortlist');
+    };
+    
+    const handleSendOffer = () => {
+        toast.success('Offer letter sent to athlete inbox');
     };
 
     return (
@@ -106,7 +125,7 @@ export default function DiscoveryFeed() {
                     <Radio size={20} color="var(--accent-success)" style={{ animation: 'pulse 2s infinite' }} />
                     Discovery Feed
                 </h3>
-                <span className="badge badge-verified" style={{ fontSize: '0.7rem' }}>{allEntries.length} events</span>
+                <span className="badge badge-verified" style={{ fontSize: '0.7rem' }}>{filteredEntries.length} events</span>
             </div>
 
             <div className="flex-col" style={{ display: 'flex', gap: 'var(--space-sm)' }}>
@@ -169,9 +188,17 @@ export default function DiscoveryFeed() {
                                         }}>
                                             <TrendingUp size={11} /> {entry.percentile}th
                                         </span>
-                                        {entry.verified && (
-                                            <span className="flex items-center gap-xs" style={{ fontSize: '0.72rem', color: 'var(--accent-success)' }}>
-                                                <CheckCircle size={11} /> Verified
+                                        {entry.verified ? (
+                                            <span className="badge badge-verified" style={{ fontSize: '0.6rem', padding: '1px 6px' }}>
+                                                🟢 Verified
+                                            </span>
+                                        ) : entry.percentile > 60 ? (
+                                            <span className="badge badge-pending" style={{ fontSize: '0.6rem', padding: '1px 6px' }}>
+                                                🟡 Partial
+                                            </span>
+                                        ) : (
+                                            <span className="badge" style={{ fontSize: '0.6rem', padding: '1px 6px', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--accent-danger)' }}>
+                                                🔴 Unverified
                                             </span>
                                         )}
                                         <span className="text-muted" style={{ fontSize: '0.65rem', marginLeft: 'auto' }}>
@@ -193,6 +220,7 @@ export default function DiscoveryFeed() {
                                         <Star size={14} fill={isStarred ? 'currentColor' : 'none'} />
                                     </button>
                                     <button className="btn btn-ghost" title="Send Offer"
+                                        onClick={handleSendOffer}
                                         style={{ width: 30, height: 30, padding: 0, minHeight: 'auto', borderRadius: 'var(--radius-sm)' }}>
                                         <Send size={14} />
                                     </button>

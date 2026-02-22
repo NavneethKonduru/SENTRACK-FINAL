@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, UserPlus, Timer, Search, Trophy, Settings, User, Award } from 'lucide-react';
+import { Home, UserPlus, Timer, Search, Trophy, Settings, User, Award, Key } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 const NAV_CONFIGS = {
@@ -7,8 +7,7 @@ const NAV_CONFIGS = {
     { to: '/', icon: Home, label: 'Home' },
     { to: '/register', icon: UserPlus, label: 'Register' },
     { to: '/assess', icon: Timer, label: 'Assess' },
-    { to: '/challenges', icon: Trophy, label: 'Challenges' },
-    { to: '/settings', icon: Settings, label: 'Settings' },
+    { to: '/vault', icon: Key, label: 'Vault' },
   ],
   scout: [
     { to: '/', icon: Home, label: 'Home' },
@@ -18,7 +17,18 @@ const NAV_CONFIGS = {
   ],
   athlete: [
     { to: '/', icon: Home, label: 'Home' },
-    { to: '/challenges', icon: Trophy, label: 'Challenges' },
+    { to: '/vault', icon: Key, label: 'Vault' },
+    { to: '/settings', icon: Settings, label: 'Settings' },
+  ],
+  witness: [
+    { to: '/', icon: Home, label: 'Home' },
+    { to: '/vault', icon: Award, label: 'Verifications' },
+    { to: '/settings', icon: Settings, label: 'Settings' },
+  ],
+  admin: [
+    { to: '/', icon: Home, label: 'Home' },
+    { to: '/scout', icon: Search, label: 'Discover' },
+    { to: '/assess', icon: Timer, label: 'Test' },
     { to: '/settings', icon: Settings, label: 'Settings' },
   ],
   // Default (not logged in or no role)
@@ -35,8 +45,9 @@ export default function BottomNav() {
   const location = useLocation();
   const { role, isAuthenticated } = useAuth();
 
-  // Don't show nav on login/select-role pages
+  // Don't show nav on login/select-role pages or if not authenticated
   if (['/login', '/select-role'].includes(location.pathname)) return null;
+  if (!isAuthenticated) return null;
 
   const items = NAV_CONFIGS[role] || NAV_CONFIGS.default;
 

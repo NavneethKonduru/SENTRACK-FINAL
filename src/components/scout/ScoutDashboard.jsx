@@ -122,18 +122,23 @@ export default function ScoutDashboard({ athletes: propAthletes, filters, onFilt
         URL.revokeObjectURL(url);
     };
 
+    const handleDistrictSelect = (districtName) => {
+        onFilterChange({ ...filters, district: districtName });
+        setActiveTab('feed');
+    };
+
     const renderTab = () => {
         switch (activeTab) {
             case 'search': return <AthleteRanking athletes={athletes} filters={filters} />;
-            case 'heatmap': return <TalentHeatMap athletes={athletes} />;
+            case 'heatmap': return <TalentHeatMap athletes={athletes} onDistrictSelect={handleDistrictSelect} />;
             case 'rankings': return <AthleteRanking athletes={athletes} filters={filters} />;
-            case 'feed': return <DiscoveryFeed />;
+            case 'feed': return <DiscoveryFeed athletes={athletes} filters={filters} />;
             case 'recruitment': return <RecruitmentPortal athletes={athletes} />;
             default: return null;
         }
     };
 
-    const showSidebar = activeTab === 'search' || activeTab === 'rankings';
+    const showSidebar = activeTab === 'search' || activeTab === 'rankings' || activeTab === 'feed';
 
     return (
         <div className="animate-fade-in">

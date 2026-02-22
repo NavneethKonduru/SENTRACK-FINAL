@@ -15,19 +15,10 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [demoMode, setDemoMode] = useState(false);
 
   // Check auth state on mount
   useEffect(() => {
-    // Check if demo mode is active
-    const demo = localStorage.getItem('sentrak_demo_mode');
-    if (demo === 'true') {
-      setDemoMode(true);
-      setRole(localStorage.getItem('sentrak_demo_role') || 'coach');
-      setUser({ uid: 'demo-user', phoneNumber: '+910000000000', displayName: 'Demo User' });
-      setLoading(false);
-      return;
-    }
+
 
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
@@ -47,6 +38,7 @@ export function AuthProvider({ children }) {
       } else {
         setUser(null);
         setRole(null);
+        localStorage.removeItem('sentrak_user_role');
       }
       setLoading(false);
     });
@@ -114,33 +106,25 @@ export function AuthProvider({ children }) {
     setRole(selectedRole);
   }
 
-  // Demo mode login (for hackathon)
-  function enterDemoMode(selectedRole = 'coach') {
-    localStorage.setItem('sentrak_demo_mode', 'true');
-    localStorage.setItem('sentrak_demo_role', selectedRole);
-    setDemoMode(true);
-    setRole(selectedRole);
-    setUser({ uid: 'demo-user', phoneNumber: '+910000000000', displayName: 'Demo User' });
-  }
-
   // Logout
   async function logout() {
     localStorage.removeItem('sentrak_demo_mode');
     localStorage.removeItem('sentrak_demo_role');
     localStorage.removeItem('sentrak_user_role');
-    setDemoMode(false);
     setUser(null);
     setRole(null);
     try { await signOut(auth); } catch {}
   }
 
   const value = {
-    user, role, loading, demoMode,
-    sendOTP, verifyOTP, selectRole, enterDemoMode, logout,
-    isAuthenticated: !!user || demoMode,
+    user, role, loading,
+    sendOTP, verifyOTP, selectRole, logout,
+    isAuthenticated: !!user,
+    isAdmin: role === 'admin',
     isCoach: role === 'coach' || role === 'admin',
     isScout: role === 'scout' || role === 'admin',
-    isAthlete: role === 'athlete',
+    isAthlete: role === 'athlete' || role === 'admin',
+    isWitness: role === 'witness' || role === 'admin',
   };
 
   return (

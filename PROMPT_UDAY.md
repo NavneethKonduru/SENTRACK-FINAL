@@ -32,7 +32,25 @@ Your goal is to intercept the user immediately after they successfully sign up w
 - **Submission Logic:** On submit, merge this data into the user's Firestore document (collection: `users`, document: `user.uid`). Add a flag `onboardingComplete: true`.
 - Once saved successfully, navigate the user to `/` and trigger a success toast.
 
+### 4. Build the Scout Registration Form (Re-assigned from Sharvesh)
+
+- Create a component `src/components/onboarding/ScoutForm.jsx`.
+- The scout registration is unique because a scout can either be representing a formal institution or acting as an independent freelancer.
+- **Required Base Fields:**
+  - Full Name (Text)
+  - District / Base of Operations (Dropdown)
+- **Conditional Branching (Crucial Step):**
+  - Implement a Toggle/Radio switch: **"Institute/Franchise"** vs **"Independent / Individual"**.
+- **If Institute/Franchise is selected, ask for:**
+  - Institute/Academy/Franchise Name (Text)
+  - Official Designation (e.g., 'Head Talent Scout', 'Analyst') (Text)
+  - Organization Registration Number (Optional Text)
+- **If Individual is selected, ask for:**
+  - Years of Scouting Experience (Number)
+  - Freelance Affiliation / Previous Clubs (Optional Text)
+- **Submission Logic:** On submit, ensure you pass `onboardingComplete: true` in the update payload and route them to `/scout`.
+
 ## Key Considerations
 
-- Ensure the form is mobile-responsive and uses the `glass-card` CSS structure to match the rest of the application's premium aesthetic.
-- Make sure to coordinate with Sharvesh and Rahul so they can plug their respective role forms into your `Onboarding.jsx` page.
+- Ensure the forms are mobile-responsive and use the `glass-card` CSS structure to match the rest of the application's premium aesthetic.
+- Make sure to coordinate with Rahul so he can plug his Coach and Witness forms into your `Onboarding.jsx` page.

@@ -21,11 +21,13 @@ import VerifySenPass from './pages/VerifySenPass';
 import SenPassVault from './pages/SenPassVault';
 import SenBot from './components/chatbot/SenBot';
 import InstallPrompt from './components/shared/InstallPrompt';
+import Onboarding from './pages/Onboarding';
 
 function ProtectedRoute({ children, allowedRoles }) {
-  const { isAuthenticated, role, loading } = useAuth();
+  const { isAuthenticated, role, onboardingComplete, loading } = useAuth();
   if (loading) return <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading...</div>;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!onboardingComplete && window.location.pathname !== '/onboarding') return <Navigate to="/onboarding" replace />;
   if (allowedRoles && role && !allowedRoles.includes(role) && role !== 'admin') {
     return <Navigate to="/" replace />;
   }
@@ -51,7 +53,7 @@ function AppRoutes() {
       if (queue.length > 0 && toast) {
         toast.info('Syncing offline data to cloud...', { autoClose: 2000 });
       }
-      
+
       const result = await syncOfflineQueue();
       if (result.synced > 0 && toast) {
         toast.success(`All synced ✓ (${result.synced} items)`);
@@ -82,6 +84,14 @@ function AppRoutes() {
           } />
           <Route path="/login" element={
             isAuthenticated ? <Navigate to="/" replace /> : <Login />
+          } />
+
+          <Route path="/onboarding" element={
+            <ProtectedRoute>
+              <ErrorBoundary fallbackMessage="Onboarding form encountered an error.">
+                <Onboarding />
+              </ErrorBoundary>
+            </ProtectedRoute>
           } />
 
           {/* Coach routes */}

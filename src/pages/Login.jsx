@@ -19,13 +19,13 @@ export default function Login() {
   const [step, setStep] = useState('role-select');
   const [selectedRole, setSelectedRole] = useState(null);
   const [authAction, setAuthAction] = useState(null); // 'signin' or 'signup'
-  
+
   // Auth Form States
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  
+
   const { sendOTP, verifyOTP, selectRole, user: currentUser } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
@@ -33,7 +33,7 @@ export default function Login() {
   // Redirect if already logged in and configured
   useEffect(() => {
     if (currentUser) {
-       navigate('/');
+      navigate('/');
     }
   }, [currentUser, navigate]);
 
@@ -74,38 +74,50 @@ export default function Login() {
     setError('');
     try {
       const authenticatedUser = await verifyOTP(code);
-      
+
       // Determine what to do based on Sign In vs Sign Up
       try {
         const userDocRef = doc(db, 'users', authenticatedUser.uid);
         const userDoc = await getDoc(userDocRef);
-        
+
         if (authAction === 'signup') {
-            if (userDoc.exists()) {
-                toast.info("Account already exists. Logging you in with existing role.");
-                await selectRole(userDoc.data().role);
-            } else {
-                toast.success(`Successfully registered as ${selectedRole.title}`);
-                await selectRole(selectedRole.id);
+          if (userDoc.exists()) {
+            toast.info("Account already exists. Logging you in with existing role.");
+            await selectRole(userDoc.data().role);
+            if (!userDoc.data().onboardingComplete) {
+              navigate('/onboarding');
+              return;
             }
-        } 
+          } else {
+            toast.success(`Successfully registered as ${selectedRole.title}`);
+            await selectRole(selectedRole.id);
+            navigate('/onboarding');
+            return;
+          }
+        }
         else if (authAction === 'signin') {
-             if (userDoc.exists()) {
-                 const existingRole = userDoc.data().role;
-                 if (existingRole !== selectedRole.id) {
-                     toast.info(`Logged in utilizing your existing '${existingRole}' access.`);
-                 }
-                 await selectRole(existingRole);
-             } else {
-                 toast.success(`No account found. We've created one for you as a ${selectedRole.title}.`);
-                 await selectRole(selectedRole.id);
-             }
+          if (userDoc.exists()) {
+            const existingRole = userDoc.data().role;
+            if (existingRole !== selectedRole.id) {
+              toast.info(`Logged in utilizing your existing '${existingRole}' access.`);
+            }
+            await selectRole(existingRole);
+            if (!userDoc.data().onboardingComplete) {
+              navigate('/onboarding');
+              return;
+            }
+          } else {
+            toast.success(`No account found. We've created one for you as a ${selectedRole.title}.`);
+            await selectRole(selectedRole.id);
+            navigate('/onboarding');
+            return;
+          }
         }
         navigate('/');
       } catch (dbErr) {
         console.warn("Firestore routing failed, logging in locally", dbErr);
         await selectRole(selectedRole.id);
-        navigate('/');
+        navigate('/onboarding');
       }
 
     } catch (err) {
@@ -146,21 +158,21 @@ export default function Login() {
 
   return (
     <div style={{ padding: '2rem 1rem', maxWidth: '420px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      
+
       {/* Step 1: Role Selection */}
       {step === 'role-select' && (
         <div className="animate-fade-in">
           <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
             <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'var(--bg-glass)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
-              <Shield size={28} color="var(--accent-primary)"/>
+              <Shield size={28} color="var(--accent-primary)" />
             </div>
             <h1 className="heading-2">Welcome to SENTRAK</h1>
             <p className="text-secondary text-sm">Select your platform role to get started</p>
           </div>
-          
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {ROLES.map(role => (
-              <button key={role.id} onClick={() => handleRoleSelect(role)} className="glass-card hover-lift" style={{ 
+              <button key={role.id} onClick={() => handleRoleSelect(role)} className="glass-card hover-lift" style={{
                 padding: '1rem', display: 'flex', alignItems: 'center', gap: '1rem', textAlign: 'left', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.05)'
               }}>
                 <div style={{ width: 44, height: 44, borderRadius: '12px', background: `${role.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem' }}>
@@ -182,7 +194,7 @@ export default function Login() {
       {step === 'action-select' && (
         <div className="animate-fade-in" style={{ textAlign: 'center' }}>
           <button onClick={() => setStep('role-select')} className="btn btn-ghost" style={{ marginBottom: '1.5rem', alignSelf: 'flex-start' }}>← Change Role</button>
-          
+
           <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: `${selectedRole?.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', fontSize: '2.5rem' }}>
             {selectedRole?.emoji}
           </div>
@@ -190,12 +202,12 @@ export default function Login() {
           <p className="text-secondary mb-xl">How would you like to continue?</p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-             <button onClick={() => handleActionSelect('signup')} className="btn btn-primary btn-lg" style={{ width: '100%' }}>
-                Create New Account
-             </button>
-             <button onClick={() => handleActionSelect('signin')} className="btn btn-secondary btn-lg" style={{ width: '100%', border: '1px solid var(--border-primary)' }}>
-                Sign In to Existing Account
-             </button>
+            <button onClick={() => handleActionSelect('signup')} className="btn btn-primary btn-lg" style={{ width: '100%' }}>
+              Create New Account
+            </button>
+            <button onClick={() => handleActionSelect('signin')} className="btn btn-secondary btn-lg" style={{ width: '100%', border: '1px solid var(--border-primary)' }}>
+              Sign In to Existing Account
+            </button>
           </div>
         </div>
       )}
@@ -204,7 +216,7 @@ export default function Login() {
       {step === 'phone' && (
         <div className="card animate-slide-up" style={{ padding: '1.5rem' }}>
           <button onClick={() => setStep('action-select')} className="btn btn-ghost" style={{ marginBottom: '1rem', padding: 0 }}>← Back</button>
-          
+
           <h3 className="heading-3 mb-xs">{authAction === 'signup' ? 'Create Account' : 'Welcome Back'}</h3>
           <p className="text-secondary text-sm mb-lg">Enter your phone number to continue as a {selectedRole?.title.split(' ')[0]}.</p>
 
@@ -214,8 +226,8 @@ export default function Login() {
               🇮🇳 +91
             </div>
             <input type="tel" inputMode="numeric" placeholder="98765 43210" value={phone} onChange={e => setPhone(e.target.value)} maxLength={10} style={{
-                flex: 1, padding: '0.75rem 1rem', borderRadius: '12px', background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)', fontSize: '1.1rem', letterSpacing: '1px', outline: 'none',
-              }} />
+              flex: 1, padding: '0.75rem 1rem', borderRadius: '12px', background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)', fontSize: '1.1rem', letterSpacing: '1px', outline: 'none',
+            }} />
           </div>
 
           {error && <p style={{ color: 'var(--status-error)', fontSize: '0.85rem', marginBottom: '1rem' }}>{error}</p>}
@@ -223,7 +235,7 @@ export default function Login() {
           <button className="btn btn-primary" onClick={handleSendOTP} disabled={loading} style={{ width: '100%', padding: '0.9rem', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
             {loading ? 'Sending...' : <><Phone size={18} /> Send OTP</>}
           </button>
-          
+
           <div style={{ marginTop: '1.5rem', padding: '1rem', borderRadius: '8px', background: 'rgba(99,102,241,0.05)', border: '1px dashed rgba(99,102,241,0.3)', textAlign: 'center', fontSize: '0.8rem' }}>
             <div style={{ color: 'var(--text-secondary)', marginBottom: '4px' }}><strong>Jury Test Credentials:</strong></div>
             <div style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>Phone: <strong>+91 99999 99999</strong> | OTP: <strong>123456</strong></div>
@@ -235,13 +247,13 @@ export default function Login() {
       {step === 'otp' && (
         <div className="card animate-slide-up" style={{ padding: '1.5rem' }}>
           <button onClick={() => setStep('phone')} className="btn btn-ghost" style={{ marginBottom: '1rem', padding: 0 }}>← Edit Number</button>
-          
+
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1rem', textAlign: 'center' }}>Enter the 6-digit code sent to +91 {phone}</p>
           <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', marginBottom: '1.5rem' }}>
             {otp.map((digit, i) => (
               <input key={i} id={`otp-${i}`} type="text" inputMode="numeric" maxLength={1} value={digit} onChange={e => handleOTPChange(i, e.target.value)} onKeyDown={e => handleOTPKeyDown(i, e)} onPaste={e => { if (i === 0) handlePasteOTP(e); }} style={{
-                  width: '48px', height: '56px', textAlign: 'center', fontSize: '1.4rem', fontWeight: '700', borderRadius: '12px', background: 'var(--bg-secondary)', border: `2px solid ${digit ? 'var(--accent-primary)' : 'var(--border-primary)'}`, color: 'var(--text-primary)', outline: 'none', transition: 'border-color 0.2s',
-                }} />
+                width: '48px', height: '56px', textAlign: 'center', fontSize: '1.4rem', fontWeight: '700', borderRadius: '12px', background: 'var(--bg-secondary)', border: `2px solid ${digit ? 'var(--accent-primary)' : 'var(--border-primary)'}`, color: 'var(--text-primary)', outline: 'none', transition: 'border-color 0.2s',
+              }} />
             ))}
           </div>
 

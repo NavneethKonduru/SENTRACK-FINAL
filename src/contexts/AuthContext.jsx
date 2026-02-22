@@ -14,6 +14,7 @@ export function useAuth() {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [role, setRole] = useState(null);
+  const [onboardingComplete, setOnboardingComplete] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Check auth state on mount
@@ -28,17 +29,22 @@ export function AuthProvider({ children }) {
           const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
           if (userDoc.exists()) {
             setRole(userDoc.data().role);
+            setOnboardingComplete(userDoc.data().onboardingComplete || false);
           } else {
             setRole(null); // New user, needs role selection
+            setOnboardingComplete(false);
           }
         } catch (err) {
           console.warn('[Auth] Firestore read failed, checking localStorage', err);
           setRole(localStorage.getItem('sentrak_user_role') || null);
+          setOnboardingComplete(localStorage.getItem('sentrak_onboarding_complete') === 'true');
         }
       } else {
         setUser(null);
         setRole(null);
+        setOnboardingComplete(false);
         localStorage.removeItem('sentrak_user_role');
+        localStorage.removeItem('sentrak_onboarding_complete');
       }
       setLoading(false);
     });
@@ -94,16 +100,25 @@ export function AuthProvider({ children }) {
       uid: user.uid,
       phone: user.phoneNumber,
       role: selectedRole,
+      onboardingComplete: false,
       createdAt: Date.now(),
     };
 
     try {
-      await setDoc(doc(db, 'users', user.uid), userData);
+      await setDoc(doc(db, 'users', user.uid), userData, { merge: true });
     } catch (err) {
       console.warn('[Auth] Firestore write failed, saving to localStorage', err);
     }
     localStorage.setItem('sentrak_user_role', selectedRole);
+    localStorage.setItem('sentrak_onboarding_complete', 'false');
     setRole(selectedRole);
+    setOnboardingComplete(false);
+  }
+
+  // Complete onboarding
+  function completeOnboarding() {
+    localStorage.setItem('sentrak_onboarding_complete', 'true');
+    setOnboardingComplete(true);
   }
 
   // Logout
@@ -117,8 +132,8 @@ export function AuthProvider({ children }) {
   }
 
   const value = {
-    user, role, loading,
-    sendOTP, verifyOTP, selectRole, logout,
+    user, role, onboardingComplete, loading,
+    sendOTP, verifyOTP, selectRole, completeOnboarding, logout,
     isAuthenticated: !!user,
     isAdmin: role === 'admin',
     isCoach: role === 'coach' || role === 'admin',

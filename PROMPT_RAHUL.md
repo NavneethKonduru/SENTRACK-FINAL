@@ -37,3 +37,26 @@ Your goal is to build the profile completion forms specifically for the **Coach 
 
 - Coordinate with Uday to ensure your `<CoachForm />` and `<WitnessForm />` components are imported into the main `Onboarding.jsx` page and rendered correctly.
 - Ensure the design matches the application's clean, dark UI utilizing the `glass-card` styling for form containers.
+
+---
+
+## 🔥 PHASE 5: Witness Verification Center (The Final Sprint)
+
+If you finish the registration forms early, move directly to this core trust feature.
+
+### 1. Build the Witness Dashboard
+
+- Create `src/pages/WitnessDashboard.jsx`.
+- **Requirements:**
+  - Fetch a list of assessments from Firestore where `status: 'pending_verification'`.
+  - Display them as a list of "Pending Approval" cards showing Athlete Name, Sport, and the Coach who recorded it.
+
+### 2. Implement the "Seal of Approval" Logic
+
+- When a Witness clicks "Verify" on an assessment card, open a modal with the `AttestationForm`.
+- The Witness must enter the OTP (In demo mode, use the generated code; in production, this would be a real SMS).
+- **Crucial:** Once verified, update the assessment document in Firestore:
+  - Set `status: 'verified'`
+  - Add `verifiedBy: witnessUid`
+  - Add `verifiedAt: serverTimestamp()`
+- Success should update the UI immediately and show a celebratory toast.

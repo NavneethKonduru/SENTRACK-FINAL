@@ -53,4 +53,30 @@ Your goal is to intercept the user immediately after they successfully sign up w
 ## Key Considerations
 
 - Ensure the forms are mobile-responsive and use the `glass-card` CSS structure to match the rest of the application's premium aesthetic.
-- Make sure to coordinate with Rahul so he can plug his Coach and Witness forms into your `Onboarding.jsx` page.
+  -\* Make sure to coordinate with Rahul so he can plug his Coach and Witness forms into your `Onboarding.jsx` page.
+
+---
+
+## 🔥 PHASE 5: Admin Dashboard & Notifications (The Final Sprint)
+
+If you finish the registration forms early, move directly to these high-value features.
+
+### 1. Build the Admin Master Dashboard
+
+- Create `src/components/admin/AdminDashboard.jsx`.
+- **Requirements:**
+  - Show macro stats: Total Athletes, Total Assessments, Active Scouts.
+  - Map Integration: Show a district-wise density map of talent (Use the `TalentHeatMap` component but adapted for all sports).
+  - Talent Pipeline: A chart showing the growth of "Gold Verified" athletes over time.
+
+### 2. Implement Real-time Notifications Engine
+
+- Currently, `src/components/layout/NotificationsDropdown.jsx` uses mock data.
+- **Change this:** Wire it to a Firestore collection called `notifications`.
+- A notification should look like: `{ userId, type, title, message, read: false, createdAt }`.
+- When a Scout clicks "Send Interest" on an athlete, it should trigger a new document in this collection for that Athlete's coach.
+
+### 3. Scout "Recruitment" Trigger
+
+- In the Scout Dashboard, add a "Contact Coach" or "Express Interest" button on athlete cards.
+- It should trigger the notification logic mentioned above.
